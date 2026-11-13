@@ -28,3 +28,9 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+- Card game rules live as pure engines in `src/lib/games/*` (init/move/view/ranking); the server is authoritative and only sends each player their own view, so hidden cards never reach other browsers.
+- Rooms, players and results tables are service-role only; all access goes through server functions in `src/lib/rooms.functions.ts`. Guests are identified by a per-room secret token in localStorage; signed-in users also by their bearer.
+- Clients sync by polling the room every ~1.5s (no realtime), versioned updates prevent double moves.
+- tsconfig relaxes noUncheckedIndexedAccess / exactOptionalPropertyTypes / noPropertyAccessFromIndexSignature to keep game engine code readable.
