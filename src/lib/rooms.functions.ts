@@ -19,6 +19,16 @@ async function optionalUserId(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
+/** Aviso sin datos a todos los navegadores de la mesa: "ha cambiado algo, pedid vuestra vista". */
+async function notify(code: string) {
+  try {
+    const sb = await admin();
+    await sb.channel(`sala:${code}`).httpSend("cambio", {});
+  } catch (e) {
+    console.error("notify", e);
+  }
+}
+
 const randomCode = () => {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
@@ -79,6 +89,7 @@ export const joinRoom = createServerFn({ method: "POST" })
     const seat = list.length ? Math.max(...list.map((p) => p.seat)) + 1 : 0;
     const { error } = await sb.from("room_players").insert({ room_id: room.id, user_id: userId, name, token, seat });
     if (error) throw new Error(error.message);
+    await notify(room.code);
     return { code: room.code, token };
   });
 
@@ -131,6 +142,7 @@ export const startGame = createServerFn({ method: "POST" })
     if (room.status === "finished") await sb.from("game_results").delete().eq("room_id", room.id);
     const state = engine.init(players.length);
     await sb.from("rooms").update({ status: "playing", state: state as any, version: room.version + 1 }).eq("id", room.id);
+    await notify(room.code);
     return { ok: true };
   });
 
@@ -166,19 +178,12 @@ export const makeMove = createServerFn({ method: "POST" })
     if (ranking) {
       const rows = ranking.map((s, i) => {
         const p = players[s];
-        return { room_id: room.id, game: room.game, user_id: p.user_id, name: p.name, position: i + 1, points: p.user_id ? pointsForPosition(i + 1) : 0 };
+        return { user_id: p.user_id, name: p.name, position: i + 1, points: p.user_id ? pointsForPosition(i + 1) : 0 };
       });
-      await sb.from("game_results").insert(rows);
-      for (const r of rows) {
-        if (!r.user_id) continue;
-        const { data: prof } = await sb.from("profiles").select("points, games_played, wins").eq("id", r.user_id).maybeSingle();
-        if (!prof) continue;
-        await sb
-          .from("profiles")
-          .update({ points: prof.points + r.points, games_played: prof.games_played + 1, wins: prof.wins + (r.position === 1 ? 1 : 0) })
-          .eq("id", r.user_id);
-      }
+      const { error } = await sb.rpc("apply_game_results", { _room: room.id, _game: room.game, _rows: rows });
+      if (error) console.error("apply_game_results", error);
     }
+    await notify(room.code);
     return { ok: true as const };
   });
 
@@ -189,6 +194,7 @@ export const backToLobby = createServerFn({ method: "POST" })
     if (!me || me.id !== room.host_player_id) throw new Error("Solo el anfitrión puede hacerlo");
     await sb.from("game_results").delete().eq("room_id", room.id);
     await sb.from("rooms").update({ status: "lobby", state: null, version: room.version + 1 }).eq("id", room.id);
+    await notify(room.code);
     return { ok: true };
   });
 
@@ -203,6 +209,7 @@ export const leaveRoom = createServerFn({ method: "POST" })
       if (other) await sb.from("rooms").update({ host_player_id: other.id }).eq("id", room.id);
       else await sb.from("rooms").delete().eq("id", room.id);
     }
+    await notify(room.code);
     return { ok: true };
   });
 

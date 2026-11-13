@@ -158,7 +158,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      apply_game_results: {
+        Args: { _game: string; _room: string; _rows: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

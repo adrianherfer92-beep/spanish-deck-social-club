@@ -7,6 +7,7 @@ import { getGuestName, getRoomToken, setGuestName, setRoomToken } from "@/lib/se
 import { gameInfo } from "@/lib/games/info";
 import { pointsForPosition } from "@/lib/games/cards";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { BOARDS, Seats } from "@/components/game/boards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,10 +38,25 @@ function Sala() {
   const q = useQuery({
     queryKey: ["sala", code, token],
     queryFn: () => getRoom({ data: { code, token } }),
-    refetchInterval: 1500,
+    // Respaldo lento por si se pierde algún aviso; lo normal es el aviso instantáneo.
+    refetchInterval: 10000,
     retry: false,
   });
   const room = q.data;
+
+  // Aviso instantáneo: el servidor nos dice "ha cambiado algo" y pedimos solo nuestra vista.
+  const { refetch } = q;
+  useEffect(() => {
+    const channel = supabase
+      .channel(`sala:${code}`)
+      .on("broadcast", { event: "cambio" }, () => {
+        refetch();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [code, refetch]);
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
