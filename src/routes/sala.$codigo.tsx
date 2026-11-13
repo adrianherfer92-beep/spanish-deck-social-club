@@ -270,8 +270,16 @@ function Lobby({ room, busy, onStart, onKick, onTimer }: { room: RoomData; busy:
         <p className="text-sm uppercase tracking-widest text-muted-foreground">Código de la mesa</p>
         <p className="mt-2 font-display text-6xl tracking-[0.2em] text-accent">{room.code}</p>
         <div className="mt-6 grid grid-cols-2 gap-2">
-          <Button asChild variant="secondary">
-            <a href={`https://wa.me/?text=${encodeURIComponent(`${text}\n${link}`)}`} target="_blank" rel="noreferrer">WhatsApp</a>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const msg = encodeURIComponent(`${text}\n${link}`);
+              const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+              if (mobile) window.location.href = `whatsapp://send?text=${msg}`;
+              else window.open(`https://web.whatsapp.com/send?text=${msg}`, "_blank", "noopener");
+            }}
+          >
+            WhatsApp
           </Button>
           <Button asChild variant="secondary">
             <a href={`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">Telegram</a>
