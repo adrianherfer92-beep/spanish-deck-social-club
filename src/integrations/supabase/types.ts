@@ -61,6 +61,7 @@ export type Database = {
           games_played: number
           id: string
           points: number
+          privacy_accepted_at: string | null
           username: string
           wins: number
         }
@@ -69,6 +70,7 @@ export type Database = {
           games_played?: number
           id: string
           points?: number
+          privacy_accepted_at?: string | null
           username: string
           wins?: number
         }
@@ -77,6 +79,7 @@ export type Database = {
           games_played?: number
           id?: string
           points?: number
+          privacy_accepted_at?: string | null
           username?: string
           wins?: number
         }

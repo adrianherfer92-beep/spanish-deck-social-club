@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { exportMyData, deleteMyAccount } from "@/lib/account.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -54,6 +55,23 @@ function Perfil() {
     else toast.success("Nombre actualizado");
   };
 
+  const download = async () => {
+    const data = await exportMyData();
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "mis-datos-la-timba.json"; a.click();
+    URL.revokeObjectURL(url);
+  };
+  const remove = async () => {
+    if (!window.confirm("¿Borrar tu cuenta para siempre? Perderás tus puntos. No se puede deshacer.")) return;
+    try {
+      await deleteMyAccount();
+      await supabase.auth.signOut();
+      toast.success("Cuenta borrada");
+      window.location.href = "/";
+    } catch { toast.error("No se pudo borrar la cuenta"); }
+  };
+
   return (
     <main className="mx-auto max-w-xl px-4 py-12">
       <h1 className="text-5xl">Mi perfil</h1>
@@ -73,6 +91,14 @@ function Perfil() {
             ))}
           </div>
         )}
+      </div>
+      <div className="poster-frame mt-6 rounded-lg bg-card p-6">
+        <h2 className="text-2xl">Tus datos</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Guardamos solo tu correo, tu alias y tus partidas. <Link to="/privacidad" className="underline">Más info</Link>.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="outline" onClick={download}>Descargar mis datos</Button>
+          <Button variant="destructive" onClick={remove}>Borrar mi cuenta</Button>
+        </div>
       </div>
     </main>
   );

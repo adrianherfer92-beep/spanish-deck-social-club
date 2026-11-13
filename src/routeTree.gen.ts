@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as JuegosIndexRouteImport } from './routes/juegos.index'
 import { Route as JuegosJuegoRouteImport } from './routes/juegos.$juego'
 import { Route as SalaCodigoRouteImport } from './routes/sala.$codigo'
@@ -32,9 +34,19 @@ const PerfilRoute = PerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacidadRoute = PrivacidadRouteImport.update({
+  id: '/privacidad',
+  path: '/privacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RankingRoute = RankingRouteImport.update({
   id: '/ranking',
   path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JuegosIndexRoute = JuegosIndexRouteImport.update({
@@ -57,7 +69,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/perfil': typeof PerfilRoute
+  '/privacidad': typeof PrivacidadRoute
   '/ranking': typeof RankingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/juegos/$juego': typeof JuegosJuegoRoute
   '/sala/$codigo': typeof SalaCodigoRoute
   '/juegos/': typeof JuegosIndexRoute
@@ -66,7 +80,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/perfil': typeof PerfilRoute
+  '/privacidad': typeof PrivacidadRoute
   '/ranking': typeof RankingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/juegos/$juego': typeof JuegosJuegoRoute
   '/sala/$codigo': typeof SalaCodigoRoute
   '/juegos': typeof JuegosIndexRoute
@@ -76,7 +92,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/perfil': typeof PerfilRoute
+  '/privacidad': typeof PrivacidadRoute
   '/ranking': typeof RankingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/juegos/$juego': typeof JuegosJuegoRoute
   '/sala/$codigo': typeof SalaCodigoRoute
   '/juegos/': typeof JuegosIndexRoute
@@ -87,7 +105,9 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/perfil'
+    | '/privacidad'
     | '/ranking'
+    | '/reset-password'
     | '/juegos/$juego'
     | '/sala/$codigo'
     | '/juegos/'
@@ -96,7 +116,9 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/perfil'
+    | '/privacidad'
     | '/ranking'
+    | '/reset-password'
     | '/juegos/$juego'
     | '/sala/$codigo'
     | '/juegos'
@@ -105,7 +127,9 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/perfil'
+    | '/privacidad'
     | '/ranking'
+    | '/reset-password'
     | '/juegos/$juego'
     | '/sala/$codigo'
     | '/juegos/'
@@ -115,7 +139,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   PerfilRoute: typeof PerfilRoute
+  PrivacidadRoute: typeof PrivacidadRoute
   RankingRoute: typeof RankingRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   JuegosJuegoRoute: typeof JuegosJuegoRoute
   SalaCodigoRoute: typeof SalaCodigoRoute
   JuegosIndexRoute: typeof JuegosIndexRoute
@@ -144,11 +170,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacidad': {
+      id: '/privacidad'
+      path: '/privacidad'
+      fullPath: '/privacidad'
+      preLoaderRoute: typeof PrivacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ranking': {
       id: '/ranking'
       path: '/ranking'
       fullPath: '/ranking'
       preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/juegos/': {
@@ -179,7 +219,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   PerfilRoute: PerfilRoute,
+  PrivacidadRoute: PrivacidadRoute,
   RankingRoute: RankingRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   JuegosJuegoRoute: JuegosJuegoRoute,
   SalaCodigoRoute: SalaCodigoRoute,
   JuegosIndexRoute: JuegosIndexRoute,

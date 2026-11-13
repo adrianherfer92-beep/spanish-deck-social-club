@@ -29,6 +29,16 @@ function AuthPage() {
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [consent, setConsent] = useState(false);
+  const [forgot, setForgot] = useState(false);
+
+  const sendReset = async () => {
+    if (!email) { toast.error("Escribe tu correo"); return; }
+    await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
+    // Mismo mensaje exista o no la cuenta, para no revelar qué correos están registrados.
+    toast.success("Si ese correo tiene perfil, te llegará un enlace.");
+    setForgot(false);
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -36,16 +46,17 @@ function AuthPage() {
     try {
       if (mode === "up") {
         if (username.trim().length < 2) throw new Error("Elige un nombre de al menos 2 letras");
+        if (!consent) throw new Error("Debes aceptar la política de privacidad");
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin, data: { username: username.trim() } },
+          options: { emailRedirectTo: window.location.origin, data: { username: username.trim(), privacy_accepted_at: new Date().toISOString() } },
         });
         if (error) throw error;
         setSent(true);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) throw new Error("Correo o contraseña incorrectos");
         toast.success("¡Bienvenido a la mesa!");
         navigate({ to: "/" });
       }
@@ -57,9 +68,12 @@ function AuthPage() {
   };
 
   const google = async () => {
+    if (!consent) { toast.error("Acepta la política de privacidad para continuar"); return; }
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
     if (r.error) { toast.error("No se pudo entrar con Google"); return; }
     if (r.redirected) return;
+    const { data: u } = await supabase.auth.getUser();
+    if (u.user) await supabase.from("profiles").update({ privacy_accepted_at: new Date().toISOString() }).eq("id", u.user.id).is("privacy_accepted_at", null);
     navigate({ to: "/" });
   };
 
@@ -74,7 +88,11 @@ function AuthPage() {
           </p>
         ) : (
           <>
-            <Button type="button" variant="outline" className="mt-6 w-full gap-2 border-[#747775] bg-[#FFFFFF] text-[#1F1F1F] hover:bg-[#F2F2F2]" onClick={google}>
+            <label className="mt-6 flex items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-1" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+              <span>He leído y acepto la <Link to="/privacidad" className="text-accent underline">política de privacidad</Link>. Solo guardamos tu correo, tu alias y tus puntos.</span>
+            </label>
+            <Button type="button" variant="outline" className="mt-4 w-full gap-2 border-[#747775] bg-[#FFFFFF] text-[#1F1F1F] hover:bg-[#F2F2F2]" onClick={google}>
               <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.480-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.760 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
               Continuar con Google
             </Button>
@@ -88,16 +106,22 @@ function AuthPage() {
               )}
               <div>
                 <Label htmlFor="e">Correo</Label>
-                <Input id="e" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input id="e" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div>
                 <Label htmlFor="p">Contraseña</Label>
-                <Input id="p" type="password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <Input id="p" type="password" minLength={8} autoComplete={mode === "up" ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
-              <Button type="submit" className="w-full" disabled={busy}>
+              {mode === "up" && <p className="text-xs text-muted-foreground">Tu nombre de jugador es público en mesas y ranking; no hace falta que sea tu nombre real.</p>}
+              <Button type="submit" className="w-full" disabled={busy || (mode === "up" && !consent)}>
                 {busy ? "Un momento…" : mode === "in" ? "Entrar" : "Crear perfil"}
               </Button>
             </form>
+            {mode === "in" && (
+              <button type="button" className="mt-3 block text-sm text-muted-foreground underline" onClick={() => (forgot ? sendReset() : setForgot(true))}>
+                {forgot ? "Enviar enlace para cambiar contraseña" : "He olvidado mi contraseña"}
+              </button>
+            )}
             <button type="button" className="mt-4 text-sm text-accent underline" onClick={() => setMode(mode === "in" ? "up" : "in")}>
               {mode === "in" ? "¿No tienes perfil? Créalo" : "Ya tengo perfil, entrar"}
             </button>

@@ -36,3 +36,4 @@ use the editor.
 - tsconfig relaxes noUncheckedIndexedAccess / exactOptionalPropertyTypes / noPropertyAccessFromIndexSignature to keep game engine code readable.
 - Abandoned rooms are cleaned daily by pg_cron calling `cleanup_abandoned_rooms()`: unscored rooms idle >2 days are deleted; scored rooms are kept (ranking history) with their game state cleared.
 - Turn timer: rooms.turn_seconds; any client calls skipTurn when the countdown (based on rooms.updated_at) expires, server re-checks elapsed time and applies a generic auto-move. Share image lives on the project CDN; og tags use the request origin via getOrigin (only emitted on https).
+- Privacy (GDPR): accounts store only email, alias, stats and privacy_accepted_at; public alias never derives from real name/email. Data export and account deletion go through `src/lib/account.functions.ts` (deletion anonymizes results to "Jugador eliminado" before removing the auth user).
