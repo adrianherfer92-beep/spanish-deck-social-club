@@ -129,6 +129,7 @@ export type Database = {
           id: string
           state: Json | null
           status: string
+          turn_seconds: number | null
           updated_at: string
           version: number
         }
@@ -140,6 +141,7 @@ export type Database = {
           id?: string
           state?: Json | null
           status?: string
+          turn_seconds?: number | null
           updated_at?: string
           version?: number
         }
@@ -151,6 +153,7 @@ export type Database = {
           id?: string
           state?: Json | null
           status?: string
+          turn_seconds?: number | null
           updated_at?: string
           version?: number
         }

@@ -2,7 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { getRoom, joinRoom, startGame, makeMove, backToLobby } from "@/lib/rooms.functions";
+import { getRoom, joinRoom, startGame, makeMove, backToLobby, kickPlayer, setTurnTimer, skipTurn, getOrigin } from "@/lib/rooms.functions";
+import { QRCodeSVG } from "qrcode.react";
+import { useTurnAlert } from "@/hooks/use-turn-alert";
+import { ogImageMeta } from "@/lib/og";
 import { getGuestName, getRoomToken, setGuestName, setRoomToken } from "@/lib/session";
 import { gameInfo } from "@/lib/games/info";
 import { pointsForPosition } from "@/lib/games/cards";
@@ -13,8 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/sala/$codigo")({
-  ssr: false,
-  head: ({ params }) => ({
+  // Datos en el servidor (para la vista previa al compartir), pantalla solo en el navegador.
+  ssr: "data-only",
+  loader: () => getOrigin(),
+  head: ({ params, loaderData }) => ({
     meta: [
       { title: `Mesa ${params.codigo} — La Timba` },
       { name: "description", content: "Te han invitado a una partida de baraja española. ¡Siéntate a la mesa!" },
@@ -23,6 +28,7 @@ export const Route = createFileRoute("/sala/$codigo")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
+      ...ogImageMeta(loaderData),
     ],
   }),
   component: Sala,
@@ -83,6 +89,15 @@ function Sala() {
     }
   };
 
+  const myTurn = !!room && room.status === "playing" && room.view?.turn === room.mySeat && room.mySeat >= 0;
+  useTurnAlert(myTurn);
+  const remaining = useCountdown(room);
+  useEffect(() => {
+    if (remaining === 0 && room?.status === "playing" && token) {
+      skipTurn({ data: { code, token } }).then(() => refetch()).catch(() => {});
+    }
+  }, [remaining, room?.status, code, token, refetch]);
+
   if (q.isLoading || loading) return <Centered>Barajando…</Centered>;
   if (q.error || !room)
     return (
@@ -111,9 +126,20 @@ function Sala() {
       </div>
 
       {room.status === "lobby" && (
-        <Lobby room={room} busy={busy} onStart={() => run(() => startGame({ data: { code, token } }))} />
+        <Lobby
+          room={room}
+          busy={busy}
+          onStart={() => run(() => startGame({ data: { code, token } }))}
+          onKick={(playerId) => run(() => kickPlayer({ data: { code, token, playerId } }))}
+          onTimer={(seconds) => run(() => setTurnTimer({ data: { code, token, seconds } }))}
+        />
       )}
 
+      {room.status === "playing" && remaining !== null && (
+        <p className="mb-4 text-center text-sm text-muted-foreground">
+          Tiempo de turno: <b className={remaining <= 10 ? "text-destructive" : "text-accent"}>{remaining}s</b>
+        </p>
+      )}
       {room.status === "playing" && room.view && (
         BOARDS[room.game]({ view: room.view, mySeat: room.mySeat, players: room.players, act, busy })
       )}
@@ -208,7 +234,22 @@ function JoinForm({ code, room, user, username, onJoined }: { code: string; room
   );
 }
 
-function Lobby({ room, busy, onStart }: { room: RoomData; busy: boolean; onStart: () => void }) {
+function useCountdown(room: RoomData | undefined) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const [offset, setOffset] = useState(0);
+  useEffect(() => {
+    if (room?.serverNow) setOffset(new Date(room.serverNow).getTime() - Date.now());
+  }, [room?.serverNow]);
+  if (!room || room.status !== "playing" || !room.turnSeconds) return null;
+  const elapsed = (now + offset - new Date(room.turnStartedAt).getTime()) / 1000;
+  return Math.max(0, Math.ceil(room.turnSeconds - elapsed));
+}
+
+function Lobby({ room, busy, onStart, onKick, onTimer }: { room: RoomData; busy: boolean; onStart: () => void; onKick: (id: string) => void; onTimer: (s: number | null) => void }) {
   const info = gameInfo(room.game)!;
   const link = typeof window !== "undefined" ? `${window.location.origin}/sala/${room.code}` : "";
   const text = `¡Vente a jugar al ${info.name} en La Timba! Código de mesa: ${room.code}`;
@@ -246,19 +287,50 @@ function Lobby({ room, busy, onStart }: { room: RoomData; busy: boolean; onStart
           </Button>
           <Button variant="secondary" onClick={share}>Más opciones</Button>
         </div>
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <div className="rounded-md bg-paper p-3">
+            <QRCodeSVG value={link} size={150} bgColor="transparent" fgColor="currentColor" className="text-paper-ink" />
+          </div>
+          <p className="text-xs text-muted-foreground">Escanéalo con el móvil para entrar</p>
+        </div>
       </div>
       <div className="poster-frame rounded-lg bg-card p-6">
         <h2 className="text-2xl">En la mesa ({room.players.length}/{room.maxPlayers})</h2>
         <div className="mt-4">
           <Seats players={room.players} mySeat={room.mySeat} extra={(i) => (
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              {room.players[i].host ? "anfitrión" : room.players[i].registered ? "con perfil" : "invitado"}
-            </div>
+            <>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                {room.players[i].host ? "anfitrión" : room.players[i].registered ? "con perfil" : "invitado"}
+              </div>
+              {room.isHost && i !== room.mySeat && (
+                <button type="button" disabled={busy} onClick={() => onKick(room.players[i].id)} className="mt-1 text-xs text-destructive underline">
+                  Expulsar
+                </button>
+              )}
+            </>
           )} />
         </div>
         <p className="mt-5 text-sm text-muted-foreground">
           Mínimo {room.minPlayers} jugadores. Puntos: 1º {pointsForPosition(1)}, 2º {pointsForPosition(2)}, 3º {pointsForPosition(3)}, resto {pointsForPosition(4)}.
         </p>
+        <div className="mt-4 flex items-center justify-between gap-3 rounded border border-border p-3 text-sm">
+          <span>Tiempo por turno</span>
+          {room.isHost ? (
+            <select
+              className="rounded border border-input bg-background px-2 py-1"
+              value={room.turnSeconds ?? ""}
+              disabled={busy}
+              onChange={(e) => onTimer(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">Sin límite</option>
+              <option value="30">30 segundos</option>
+              <option value="60">1 minuto</option>
+              <option value="120">2 minutos</option>
+            </select>
+          ) : (
+            <b className="text-accent">{room.turnSeconds ? `${room.turnSeconds} s` : "Sin límite"}</b>
+          )}
+        </div>
         {room.isHost ? (
           <Button size="lg" className="mt-4 w-full" onClick={onStart} disabled={busy || !enough}>
             {enough ? "Repartir cartas" : "Esperando jugadores…"}

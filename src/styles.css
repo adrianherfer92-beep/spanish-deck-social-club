@@ -170,3 +170,9 @@
   to { opacity: 1; transform: none; }
 }
 @utility animate-deal { animation: deal-in 300ms ease-out both; }
+@keyframes card-fly {
+  0% { opacity: 0; transform: translateY(140px) scale(0.7) rotate(-12deg); }
+  70% { opacity: 1; transform: translateY(-6px) scale(1.05) rotate(2deg); }
+  100% { opacity: 1; transform: none; }
+}
+@utility animate-fly { animation: card-fly 420ms cubic-bezier(.2,.8,.3,1) both; }

@@ -128,6 +128,9 @@ export const getRoom = createServerFn({ method: "POST" })
       view: room.state && room.status !== "lobby" ? (engine.view(room.state, room.status === "finished" ? -1 : myIndex) as any) : null,
       finalView: room.state && room.status === "finished" ? (engine.view(room.state, myIndex) as any) : null,
       results,
+      turnSeconds: room.turn_seconds as number | null,
+      turnStartedAt: room.updated_at as string,
+      serverNow: new Date().toISOString(),
     };
   });
 
@@ -235,3 +238,86 @@ export const getRanking = createServerFn({ method: "POST" })
   });
 
 type Row = { id: string; username: string; points: number; games_played: number; wins: number };
+
+/** Jugada automática cuando se agota el tiempo: pasa, se planta, roba o echa la primera carta válida. */
+function autoMove(engine: (typeof ENGINES)[string], state: any, seat: number) {
+  let s = state;
+  for (let guard = 0; guard < 60; guard++) {
+    const view: any = engine.view(s, seat);
+    const tries: any[] = [{ type: "pass" }, { type: "stand" }, ...(view.hand ?? []).map((c: string) => ({ type: "play", card: c })), { type: "draw" }];
+    let moved = false;
+    for (const a of tries) {
+      try {
+        const next = engine.move(s, seat, a);
+        s = next;
+        moved = true;
+        if (a.type !== "draw") return s;
+        break;
+      } catch {}
+    }
+    if (!moved) return null;
+  }
+  return null;
+}
+
+export const skipTurn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ code: z.string(), token: z.string() }))
+  .handler(async ({ data }) => {
+    const { sb, room, players, me } = await loadRoom(data.code, data.token);
+    if (!me || room.status !== "playing" || !room.turn_seconds) return { ok: false };
+    const elapsed = (Date.now() - new Date(room.updated_at).getTime()) / 1000;
+    if (elapsed < room.turn_seconds) return { ok: false };
+    const engine = ENGINES[room.game];
+    const turn = (room.state as any)?.turn;
+    if (typeof turn !== "number") return { ok: false };
+    const next = autoMove(engine, room.state, turn);
+    if (!next) return { ok: false };
+    const ranking = engine.ranking(next);
+    const { data: updated } = await sb
+      .from("rooms")
+      .update({ state: next as any, version: room.version + 1, status: ranking ? "finished" : "playing" })
+      .eq("id", room.id)
+      .eq("version", room.version)
+      .select("id");
+    if (!updated?.length) return { ok: false };
+    if (ranking) {
+      const rows = ranking.map((s, i) => {
+        const p = players[s];
+        return { user_id: p.user_id, name: p.name, position: i + 1, points: p.user_id ? pointsForPosition(i + 1) : 0 };
+      });
+      await sb.rpc("apply_game_results", { _room: room.id, _game: room.game, _rows: rows });
+    }
+    await notify(room.code);
+    return { ok: true };
+  });
+
+export const setTurnTimer = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ code: z.string(), token: z.string(), seconds: z.number().int().min(15).max(300).nullable() }))
+  .handler(async ({ data }) => {
+    const { sb, room, me } = await loadRoom(data.code, data.token);
+    if (!me || me.id !== room.host_player_id) throw new Error("Solo el anfitrión puede cambiarlo");
+    await sb.from("rooms").update({ turn_seconds: data.seconds }).eq("id", room.id);
+    await notify(room.code);
+    return { ok: true };
+  });
+
+export const kickPlayer = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ code: z.string(), token: z.string(), playerId: z.string().uuid() }))
+  .handler(async ({ data }) => {
+    const { sb, room, me } = await loadRoom(data.code, data.token);
+    if (!me || me.id !== room.host_player_id) throw new Error("Solo el anfitrión puede expulsar");
+    if (room.status === "playing") throw new Error("No se puede expulsar durante la partida");
+    if (data.playerId === me.id) throw new Error("No puedes expulsarte a ti mismo");
+    await sb.from("room_players").delete().eq("id", data.playerId).eq("room_id", room.id);
+    await notify(room.code);
+    return { ok: true };
+  });
+
+/** Origen público de la petición, para URLs absolutas en las vistas previas al compartir. */
+export const getOrigin = createServerFn({ method: "GET" }).handler(async () => {
+  const req = getRequest();
+  const url = new URL(req.url);
+  const proto = req.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? url.host;
+  return `${proto}://${host}`;
+});

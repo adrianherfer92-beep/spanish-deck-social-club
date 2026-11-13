@@ -86,7 +86,7 @@ export function CinquilloBoard({ view, mySeat, players, act, busy }: BoardProps)
                 {RANKS.map((r, idx) => {
                   const on = row && idx >= row[0] && idx <= row[1];
                   return on ? (
-                    <PlayingCard key={r} card={`${s}${r}`} size="sm" />
+                    <PlayingCard key={r} card={`${s}${r}`} size="sm" className="animate-fly" />
                   ) : (
                     <div key={r} className="w-10 shrink-0 rounded-md border border-dashed border-paper/25" style={{ aspectRatio: "60/90" }} />
                   );
@@ -136,7 +136,7 @@ export function BurroBoard({ view, mySeat, players, act, busy }: BoardProps) {
             {view.trick.length ? (
               view.trick.map((t: { seat: number; card: string }) => (
                 <div key={t.card} className="text-center">
-                  <PlayingCard card={t.card} size="md" className="animate-deal" />
+                  <PlayingCard card={t.card} size="md" className="animate-fly" />
                   <div className="mt-1 max-w-16 truncate text-xs text-paper/80">{players[t.seat]?.name}</div>
                 </div>
               ))
@@ -183,7 +183,7 @@ export function SieteBoard({ view, mySeat, players, act, busy }: BoardProps) {
             </div>
             <div className="mt-2 flex flex-wrap gap-1">
               {(view.hands[i] as (string | null)[]).map((c, k) => (
-                <PlayingCard key={k} card={c} faceDown={!c} size="sm" className="animate-deal" />
+                <PlayingCard key={k} card={c} faceDown={!c} size="sm" className="animate-fly" />
               ))}
             </div>
           </div>
@@ -251,6 +251,7 @@ export function EscobaBoard({ view, mySeat, players, act, busy }: BoardProps) {
               key={c}
               card={c}
               size="md"
+              className="animate-fly"
               selected={take.includes(c)}
               disabled={!mine || busy}
               onClick={mine ? () => setTake((t) => (t.includes(c) ? t.filter((x) => x !== c) : [...t, c])) : undefined}

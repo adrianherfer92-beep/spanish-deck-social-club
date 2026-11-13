@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import hero from "@/assets/taberna-hero.jpg";
 import { GAMES } from "@/lib/games/info";
-import { createRoom, joinRoom } from "@/lib/rooms.functions";
-import { getGuestName, setGuestName, setRoomToken } from "@/lib/session";
+import { createRoom, joinRoom, getRoom, getOrigin } from "@/lib/rooms.functions";
+import { ogImageMeta } from "@/lib/og";
+import { getGuestName, setGuestName, setRoomToken, getLastRoom, getRoomToken, clearLastRoom } from "@/lib/session";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,8 @@ import { PlayingCard } from "@/components/game/PlayingCard";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
+  loader: () => getOrigin(),
+  head: ({ loaderData }) => ({
     meta: [
       { title: "La Timba — Juega a la baraja española con tus amigos" },
       { name: "description", content: "Crea una mesa, comparte el código por WhatsApp o Telegram y jugad al cinquillo, el burro, el siete y medio o la escoba." },
@@ -20,6 +22,7 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Crea una mesa, comparte el código y a jugar." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      ...ogImageMeta(loaderData),
     ],
   }),
   component: Index,
@@ -34,6 +37,18 @@ function Index() {
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
 
   useEffect(() => setName(getGuestName()), []);
+  const [resume, setResume] = useState<{ code: string; game: string } | null>(null);
+  useEffect(() => {
+    const last = getLastRoom();
+    const t = last ? getRoomToken(last) : "";
+    if (!last || !t) return;
+    getRoom({ data: { code: last, token: t } })
+      .then((r) => {
+        if (r.joined && r.status !== "finished") setResume({ code: r.code, game: GAMES.find((g) => g.id === r.game)?.name ?? r.game });
+        else clearLastRoom();
+      })
+      .catch(() => clearLastRoom());
+  }, []);
   const playerName = user ? username ?? "Jugador" : name.trim();
 
   const ensureName = () => {
@@ -93,6 +108,21 @@ function Index() {
         </div>
       </section>
 
+      {resume && (
+        <div className="mx-auto mt-8 max-w-6xl px-4">
+          <div className="poster-frame flex flex-wrap items-center justify-between gap-3 rounded-lg bg-secondary p-4">
+            <p>
+              Tienes una mesa de <b className="text-accent">{resume.game}</b> en curso (código {resume.code}).
+            </p>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => { clearLastRoom(); setResume(null); }}>Olvidar</Button>
+              <Button asChild size="sm">
+                <Link to="/sala/$codigo" params={{ codigo: resume.code }}>Volver a la mesa</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <section className="mx-auto grid max-w-6xl gap-6 px-4 py-12 lg:grid-cols-[1.5fr_1fr]">
         <div className="poster-frame rounded-lg bg-card p-6">
           <h2 className="text-3xl">Monta una mesa</h2>
