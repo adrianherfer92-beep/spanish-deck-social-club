@@ -34,3 +34,4 @@ use the editor.
 - Rooms, players and results tables are service-role only; all access goes through server functions in `src/lib/rooms.functions.ts`. Guests are identified by a per-room secret token in localStorage; signed-in users also by their bearer.
 - Server mutations send a data-free broadcast ("cambio") on topic `sala:CODE`; clients refetch their own view on it, with a slow 10s poll fallback. Versioned updates prevent double moves. Game results and points are applied atomically by the service-only `apply_game_results` DB function.
 - tsconfig relaxes noUncheckedIndexedAccess / exactOptionalPropertyTypes / noPropertyAccessFromIndexSignature to keep game engine code readable.
+- Abandoned rooms are cleaned daily by pg_cron calling `cleanup_abandoned_rooms()`: unscored rooms idle >2 days are deleted; scored rooms are kept (ranking history) with their game state cleared.

@@ -22,6 +22,20 @@
       "when": 1794594641134,
       "tag": "0002_batch_results_and_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794594811517,
+      "tag": "0003_room_activity_timestamp",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794594821164,
+      "tag": "0004_enable_pg_cron",
+      "breakpoints": true
     }
   ]
 }

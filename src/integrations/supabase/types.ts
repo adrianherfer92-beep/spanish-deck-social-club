@@ -129,6 +129,7 @@ export type Database = {
           id: string
           state: Json | null
           status: string
+          updated_at: string
           version: number
         }
         Insert: {
@@ -139,6 +140,7 @@ export type Database = {
           id?: string
           state?: Json | null
           status?: string
+          updated_at?: string
           version?: number
         }
         Update: {
@@ -149,6 +151,7 @@ export type Database = {
           id?: string
           state?: Json | null
           status?: string
+          updated_at?: string
           version?: number
         }
         Relationships: []
@@ -162,6 +165,7 @@ export type Database = {
         Args: { _game: string; _room: string; _rows: Json }
         Returns: undefined
       }
+      cleanup_abandoned_rooms: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
