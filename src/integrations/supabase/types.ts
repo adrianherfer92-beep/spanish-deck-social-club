@@ -245,6 +245,54 @@ export type Database = {
         }
         Relationships: []
       }
+      room_creation_usage: {
+        Row: {
+          created_at: string
+          day: string
+          environment: string
+          id: string
+          kind: string
+          purchase_id: string | null
+          room_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          environment: string
+          id?: string
+          kind: string
+          purchase_id?: string | null
+          room_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          environment?: string
+          id?: string
+          kind?: string
+          purchase_id?: string | null
+          room_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_creation_usage_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "room_purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_creation_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_players: {
         Row: {
           gif_reaction: Json | null
@@ -291,6 +339,47 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_purchases: {
+        Row: {
+          amount_cents: number
+          consumed_at: string | null
+          created_at: string
+          environment: string
+          id: string
+          session_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents?: number
+          consumed_at?: string | null
+          created_at?: string
+          environment: string
+          id?: string
+          session_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          consumed_at?: string | null
+          created_at?: string
+          environment?: string
+          id?: string
+          session_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -367,6 +456,25 @@ export type Database = {
       claim_giphy_search: { Args: { _player: string }; Returns: boolean }
       cleanup_abandoned_rooms: { Args: never; Returns: undefined }
       cleanup_moderation: { Args: never; Returns: undefined }
+      confirm_room_purchase: {
+        Args: {
+          _environment: string
+          _order: string
+          _session: string
+          _user: string
+        }
+        Returns: undefined
+      }
+      create_metered_room: {
+        Args: {
+          _environment: string
+          _game: string
+          _name: string
+          _token: string
+          _user: string
+        }
+        Returns: Json
+      }
       exit_room: {
         Args: {
           _delete: boolean

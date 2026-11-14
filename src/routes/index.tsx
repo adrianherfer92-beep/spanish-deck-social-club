@@ -12,6 +12,10 @@ import { Input } from "@/components/ui/input";
 import { PlayingCard } from "@/components/game/PlayingCard";
 import { cn } from "@/lib/utils";
 import { PointsRules } from "@/components/PointsRules";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { getCreationAllowance } from "@/lib/payments.functions";
+import { getStripeEnvironment } from "@/lib/stripe";
 
 export const Route = createFileRoute("/")({
   loader: () => getOrigin(),
@@ -36,6 +40,9 @@ function Index() {
   const [game, setGame] = useState(GAMES[0].id);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
+  const create = useServerFn(createRoom);
+  const allowanceFn = useServerFn(getCreationAllowance);
+  const allowance = useQuery({ queryKey: ["creation-allowance", user?.id], queryFn: () => allowanceFn({ data: { environment: getStripeEnvironment() } }), enabled: !!user, retry: false });
 
   useEffect(() => setName(getGuestName()), []);
   const [resume, setResume] = useState<{ code: string; game: string } | null>(null);
@@ -62,10 +69,14 @@ function Index() {
   };
 
   const onCreate = async () => {
+    if (!user) { navigate({ to: "/auth" }); return; }
     if (!ensureName()) return;
     setBusy("create");
     try {
-      const r = await createRoom({ data: { game, name: playerName } });
+      const current = await allowanceFn({ data: { environment: getStripeEnvironment() } });
+      if (current.access === "checkout") { await navigate({ to: "/pago", search: { game, session_id: undefined } }); return; }
+      const r = await create({ data: { game, name: playerName, environment: getStripeEnvironment() } });
+      if ("error" in r) { await allowance.refetch(); throw new Error(r.error); }
       setRoomToken(r.code, r.token);
       navigate({ to: "/sala/$codigo", params: { codigo: r.code } });
     } catch (e) {
@@ -127,7 +138,9 @@ function Index() {
       <section className="mx-auto grid max-w-6xl gap-6 px-4 py-12 lg:grid-cols-[1.5fr_1fr]">
         <div className="poster-frame rounded-lg bg-card p-6">
           <h2 className="text-3xl">Monta una mesa</h2>
-          <p className="mt-1 text-muted-foreground">Elige a qué se juega hoy.</p>
+          <p className="mt-1 text-muted-foreground">{allowance.data?.access === "admin" ? "Administrador: partidas ilimitadas sin pagar." : "Una partida gratuita al día por cuenta. Cada adicional cuesta 1 €."}</p>
+          <p className="mt-2 text-xs text-muted-foreground">El día se renueva a medianoche de Madrid. Unirse a una mesa es gratis, también como invitado.</p>
+          {allowance.error && <p role="alert" className="mt-2 text-sm text-destructive">{allowance.error.message}</p>}
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {GAMES.map((g) => (
               <button
@@ -156,7 +169,7 @@ function Index() {
               <Input placeholder="Tu nombre (invitado)" value={name} maxLength={20} onChange={(e) => setName(e.target.value)} className="flex-1" />
             )}
             <Button size="lg" onClick={onCreate} disabled={busy !== null}>
-              {busy === "create" ? "Barajando…" : "Crear partida"}
+              {busy === "create" ? "Barajando…" : !user ? "Entrar para crear" : allowance.data?.access === "checkout" ? "Crear partida · 1 €" : allowance.data?.access === "paid" ? "Usar partida comprada" : "Crear partida"}
             </Button>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">

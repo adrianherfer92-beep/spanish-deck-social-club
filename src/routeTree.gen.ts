@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as PagoRouteImport } from './routes/pago'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as RankingRouteImport } from './routes/ranking'
@@ -19,6 +20,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as JuegosIndexRouteImport } from './routes/juegos.index'
 import { Route as JuegosJuegoRouteImport } from './routes/juegos.$juego'
 import { Route as SalaCodigoRouteImport } from './routes/sala.$codigo'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,6 +35,11 @@ const AdminRoute = AdminRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagoRoute = PagoRouteImport.update({
+  id: '/pago',
+  path: '/pago',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PerfilRoute = PerfilRouteImport.update({
@@ -70,11 +77,18 @@ const SalaCodigoRoute = SalaCodigoRouteImport.update({
   path: '/sala/$codigo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/pago': typeof PagoRoute
   '/perfil': typeof PerfilRoute
   '/privacidad': typeof PrivacidadRoute
   '/ranking': typeof RankingRoute
@@ -82,11 +96,13 @@ export interface FileRoutesByFullPath {
   '/juegos/$juego': typeof JuegosJuegoRoute
   '/sala/$codigo': typeof SalaCodigoRoute
   '/juegos/': typeof JuegosIndexRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/pago': typeof PagoRoute
   '/perfil': typeof PerfilRoute
   '/privacidad': typeof PrivacidadRoute
   '/ranking': typeof RankingRoute
@@ -94,12 +110,14 @@ export interface FileRoutesByTo {
   '/juegos/$juego': typeof JuegosJuegoRoute
   '/sala/$codigo': typeof SalaCodigoRoute
   '/juegos': typeof JuegosIndexRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/pago': typeof PagoRoute
   '/perfil': typeof PerfilRoute
   '/privacidad': typeof PrivacidadRoute
   '/ranking': typeof RankingRoute
@@ -107,6 +125,7 @@ export interface FileRoutesById {
   '/juegos/$juego': typeof JuegosJuegoRoute
   '/sala/$codigo': typeof SalaCodigoRoute
   '/juegos/': typeof JuegosIndexRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -114,6 +133,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/pago'
     | '/perfil'
     | '/privacidad'
     | '/ranking'
@@ -121,11 +141,13 @@ export interface FileRouteTypes {
     | '/juegos/$juego'
     | '/sala/$codigo'
     | '/juegos/'
+    | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/auth'
+    | '/pago'
     | '/perfil'
     | '/privacidad'
     | '/ranking'
@@ -133,11 +155,13 @@ export interface FileRouteTypes {
     | '/juegos/$juego'
     | '/sala/$codigo'
     | '/juegos'
+    | '/api/public/payments/webhook'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/auth'
+    | '/pago'
     | '/perfil'
     | '/privacidad'
     | '/ranking'
@@ -145,12 +169,14 @@ export interface FileRouteTypes {
     | '/juegos/$juego'
     | '/sala/$codigo'
     | '/juegos/'
+    | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  PagoRoute: typeof PagoRoute
   PerfilRoute: typeof PerfilRoute
   PrivacidadRoute: typeof PrivacidadRoute
   RankingRoute: typeof RankingRoute
@@ -158,6 +184,7 @@ export interface RootRouteChildren {
   JuegosJuegoRoute: typeof JuegosJuegoRoute
   SalaCodigoRoute: typeof SalaCodigoRoute
   JuegosIndexRoute: typeof JuegosIndexRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -181,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pago': {
+      id: '/pago'
+      path: '/pago'
+      fullPath: '/pago'
+      preLoaderRoute: typeof PagoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/perfil': {
@@ -232,6 +266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalaCodigoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -239,6 +280,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  PagoRoute: PagoRoute,
   PerfilRoute: PerfilRoute,
   PrivacidadRoute: PrivacidadRoute,
   RankingRoute: RankingRoute,
@@ -246,6 +288,7 @@ const rootRouteChildren: RootRouteChildren = {
   JuegosJuegoRoute: JuegosJuegoRoute,
   SalaCodigoRoute: SalaCodigoRoute,
   JuegosIndexRoute: JuegosIndexRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

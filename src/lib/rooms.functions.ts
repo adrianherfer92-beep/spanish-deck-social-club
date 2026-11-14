@@ -6,6 +6,8 @@ import { MoveError } from "@/lib/games/types";
 import { autoMove, advanceDeparted, resultRows } from "@/lib/room-points";
 import { resolvedAvatarSeed } from "@/lib/avatars";
 import { gifWaitSeconds, safeGif, GIF_VISIBLE_MS, type Gif } from "@/lib/gifs";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { environmentSchema } from "@/lib/room-billing";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -50,26 +52,21 @@ async function displayName(userId: string | null, fallback: string) {
 const nameSchema = z.string().trim().min(1, "Escribe tu nombre").max(20);
 
 export const createRoom = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ game: z.string(), name: nameSchema }))
-  .handler(async ({ data }) => {
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ game: z.string(), name: nameSchema, environment: environmentSchema }))
+  .handler(async ({ data, context }) => {
     if (!ENGINES[data.game]) throw new Error("Juego no disponible");
     const sb = await admin();
-    const userId = await optionalUserId();
+    const userId = context.userId;
+    const { assertNotSuspended } = await import("./moderation.server");
+    await assertNotSuspended(sb, userId);
+    const role = await context.supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (role.error) throw new Error("No se pudo comprobar tu acceso");
     const name = await displayName(userId, data.name);
-    let room: { id: string; code: string } | null = null;
-    for (let i = 0; i < 5 && !room; i++) {
-      const { data: r } = await sb.from("rooms").insert({ code: randomCode(), game: data.game }).select("id, code").single();
-      room = r;
-    }
-    if (!room) throw new Error("No se pudo crear la sala");
     const token = randomToken();
-    const { data: p, error } = await sb
-      .from("room_players")
-      .insert({ room_id: room.id, user_id: userId, name, token, seat: 0 })
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    await sb.from("rooms").update({ host_player_id: p.id, creator_player_id: p.id }).eq("id", room.id);
+    const { data: room, error } = await sb.rpc("create_metered_room", { _user: userId, _environment: data.environment, _game: data.game, _name: name, _token: token });
+    if (error) return { error: error.message };
+    if (!room || typeof room !== "object" || Array.isArray(room) || typeof room.code !== "string") return { error: "No se pudo crear la sala" };
     return { code: room.code, token };
   });
 
@@ -166,7 +163,7 @@ export const startGame = createServerFn({ method: "POST" })
     if (room.status === "playing") throw new Error("La partida ya ha empezado");
     const engine = ENGINES[room.game];
     if (activePlayers.length < engine.minPlayers) throw new Error(`Hacen falta al menos ${engine.minPlayers} jugadores`);
-    if (room.status === "finished") await sb.from("game_results").delete().eq("room_id", room.id);
+    if (room.status === "finished") throw new Error("Crea una nueva partida desde el inicio");
     await sb.from("room_players").delete().eq("room_id", room.id).not("left_at", "is", null);
     const state = engine.init(activePlayers.length);
     await sb.from("rooms").update({ status: "playing", state: state as any, version: room.version + 1 }).eq("id", room.id);
@@ -218,11 +215,7 @@ export const backToLobby = createServerFn({ method: "POST" })
     const { sb, room, me } = await loadRoom(data.code, data.token);
     if (!me || me.id !== room.host_player_id) throw new Error("Solo el anfitrión puede hacerlo");
     if (room.status !== "finished") throw new Error("La partida aún no ha terminado");
-    await sb.from("room_players").delete().eq("room_id", room.id).not("left_at", "is", null);
-    await sb.from("game_results").delete().eq("room_id", room.id);
-    await sb.from("rooms").update({ status: "lobby", state: null, version: room.version + 1 }).eq("id", room.id);
-    await notify(room.code);
-    return { ok: true };
+    throw new Error("Crea una nueva partida desde el inicio para aplicar el límite diario");
   });
 
 export const leaveRoom = createServerFn({ method: "POST" })

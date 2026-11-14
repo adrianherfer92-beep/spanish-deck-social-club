@@ -197,8 +197,7 @@ function Sala() {
             </ol>
             {room.isHost ? (
               <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <Button onClick={() => run(() => startGame({ data: { code, token } }))} disabled={busy}>Otra partida</Button>
-                <Button variant="secondary" onClick={() => run(() => backToLobby({ data: { code, token } }))} disabled={busy}>Volver a la sala</Button>
+                <Button asChild><Link to="/">Crear otra partida</Link></Button>
               </div>
             ) : (
               <p className="mt-6 text-center text-sm text-muted-foreground">Esperando a que el anfitrión decida si se juega otra…</p>
