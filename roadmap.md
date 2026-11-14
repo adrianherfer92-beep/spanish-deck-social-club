@@ -1,4 +1,9 @@
 # DiceBear avatars
+## Pagos por partida
+- [ ] Crear producto de 1 € y pago integrado, sin suscripciones.
+- [ ] Aplicar una creación gratuita diaria por cuenta y excepción del administrador de forma atómica.
+- [ ] Confirmar pagos antes de permitir una creación adicional y evitar reutilizar el pago.
+- [ ] Mostrar límites, actualizar privacidad y probar compra, permisos y concurrencia.
 ## Abandono y puntos
 - [x] Añadir eliminación por el creador y abandono con penalizaciones atómicas.
 - [x] Añadir confirmaciones y explicar el sistema de puntos.
