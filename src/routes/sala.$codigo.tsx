@@ -15,6 +15,7 @@ import { BOARDS, Seats } from "@/components/game/boards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GifReactions } from "@/components/game/GifReactions";
+import { ReportPlayer } from "@/components/game/ReportPlayer";
 
 export const Route = createFileRoute("/sala/$codigo")({
   // Datos en el servidor (para la vista previa al compartir), pantalla solo en el navegador.
@@ -103,7 +104,7 @@ function Sala() {
   if (q.error || !room)
     return (
       <Centered>
-        <p className="font-display text-3xl">Esta mesa no existe</p>
+        <p className="font-display text-3xl">{q.error?.message?.startsWith("Participación suspendida") ? q.error.message : "No se puede acceder a esta mesa"}</p>
         <Button asChild className="mt-4"><Link to="/">Volver</Link></Button>
       </Centered>
     );
@@ -124,6 +125,7 @@ function Sala() {
         <Link to="/juegos/$juego" params={{ juego: room.game }} target="_blank" className="text-sm text-accent underline">
           Ver reglas
         </Link>
+        <ReportPlayer code={code} token={token} players={room.players} mySeat={room.mySeat} />
       </div>
 
       {room.status === "lobby" && (

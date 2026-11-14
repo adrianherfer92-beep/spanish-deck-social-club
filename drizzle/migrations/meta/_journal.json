@@ -64,6 +64,27 @@
       "when": 1794652330222,
       "tag": "0008_giphy_room_reactions",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794654352495,
+      "tag": "0009_private_moderation",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794654446186,
+      "tag": "0010_moderation_retention",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794654458414,
+      "tag": "0011_moderation_actor_erasure",
+      "breakpoints": true
     }
   ]
 }

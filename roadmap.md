@@ -1,4 +1,9 @@
 # DiceBear avatars
+## Moderación
+- [x] Añadir un único administrador, reportes privados limitados y decisiones auditadas.
+- [x] Aplicar suspensiones temporales a cuentas e invitados en todas las acciones de mesa.
+- [x] Añadir panel de moderación, reportes desde la mesa y privacidad.
+- [x] Verificar permisos, reportes y suspensiones con pruebas y la aplicación.
 ## GIPHY
 - [x] Add secure GIPHY search and room-only reactions with an atomic 30-second sending limit.
 - [x] Add optional GIF display, privacy information and rule tests.

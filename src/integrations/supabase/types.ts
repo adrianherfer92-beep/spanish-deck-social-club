@@ -55,6 +55,121 @@ export type Database = {
           },
         ]
       }
+      moderation_decisions: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          reason: string
+          report_id: string
+          until_at: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          reason: string
+          report_id: string
+          until_at?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          report_id?: string
+          until_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_decisions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "player_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moderation_suspensions: {
+        Row: {
+          id: string
+          player_id: string | null
+          report_id: string
+          until_at: string
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          player_id?: string | null
+          report_id: string
+          until_at: string
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          player_id?: string | null
+          report_id?: string
+          until_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_suspensions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "player_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_reports: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          reason: string
+          reporter_player_id: string
+          reporter_user_id: string | null
+          resolved_at: string | null
+          room_code: string
+          status: string
+          target_name: string
+          target_player_id: string
+          target_user_id: string | null
+        }
+        Insert: {
+          comment?: string
+          created_at?: string
+          id?: string
+          reason: string
+          reporter_player_id: string
+          reporter_user_id?: string | null
+          resolved_at?: string | null
+          room_code: string
+          status?: string
+          target_name: string
+          target_player_id: string
+          target_user_id?: string | null
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_player_id?: string
+          reporter_user_id?: string | null
+          resolved_at?: string | null
+          room_code?: string
+          status?: string
+          target_name?: string
+          target_player_id?: string
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_seed: string | null
@@ -174,6 +289,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -185,13 +318,41 @@ export type Database = {
       }
       claim_giphy_search: { Args: { _player: string }; Returns: boolean }
       cleanup_abandoned_rooms: { Args: never; Returns: undefined }
+      cleanup_moderation: { Args: never; Returns: undefined }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      resolve_player_report: {
+        Args: {
+          _action: string
+          _actor: string
+          _hours: number
+          _reason: string
+          _report: string
+        }
+        Returns: undefined
+      }
       send_room_gif: {
         Args: { _player: string; _reaction: Json }
         Returns: boolean
       }
+      submit_player_report: {
+        Args: {
+          _comment: string
+          _reason: string
+          _room: string
+          _target: string
+          _token: string
+        }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -318,6 +479,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

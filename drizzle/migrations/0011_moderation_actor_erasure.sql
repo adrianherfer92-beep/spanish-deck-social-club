@@ -1,0 +1,1 @@
+GRANT UPDATE(actor_id) ON public.moderation_decisions TO service_role;

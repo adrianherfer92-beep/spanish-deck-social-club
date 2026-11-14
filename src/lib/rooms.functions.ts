@@ -18,7 +18,10 @@ async function optionalUserId(): Promise<string | null> {
   if (!auth?.startsWith("Bearer ")) return null;
   const sb = await admin();
   const { data } = await sb.auth.getUser(auth.slice(7));
-  return data.user?.id ?? null;
+  if (!data.user) throw new Error("Tu sesión no es válida. Vuelve a entrar.");
+  const { assertNotSuspended } = await import("./moderation.server");
+  await assertNotSuspended(sb, data.user.id);
+  return data.user.id;
 }
 
 /** Aviso sin datos a todos los navegadores de la mesa: "ha cambiado algo, pedid vuestra vista". */
@@ -102,6 +105,9 @@ async function loadRoom(code: string, token: string) {
   const { data: players } = await sb.from("room_players").select("*").eq("room_id", room.id).order("seat");
   const list = players ?? [];
   const me = list.find((p) => p.token === token) ?? null;
+  const { assertNotSuspended } = await import("./moderation.server");
+  await assertNotSuspended(sb, await optionalUserId());
+  if (me) await assertNotSuspended(sb, me.user_id, me.id);
   return { sb, room, players: list, me };
 }
 

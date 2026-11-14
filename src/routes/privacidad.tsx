@@ -38,6 +38,9 @@ function Privacidad() {
       <h2 className="text-2xl">Cuánto tiempo</h2>
       <p>Mientras tengas cuenta. Las mesas abandonadas se borran a los 2 días. Si borras tu cuenta, tus datos se eliminan y tu historial queda anónimo como «Jugador eliminado».</p>
       <h2 className="text-2xl">Tus derechos</h2>
+      <h2 className="text-2xl">Reportes y moderación</h2>
+      <p>Los jugadores de una mesa pueden reportar a otro jugador con un motivo y un comentario opcional. Guardamos los identificadores de ambos, la mesa, el alias reportado y la fecha. Los reportes son privados: solo el administrador puede revisarlos, suspender temporalmente la participación y registrar el motivo de su decisión. No recibe correos, contraseñas, claves de acceso ni cartas ocultas. No hay sanciones automáticas por acumular reportes.</p>
+      <p>Tratamos estos datos para proteger a los jugadores y prevenir abusos (interés legítimo, art. 6.1.f RGPD). Las suspensiones vencen automáticamente. Un invitado queda suspendido en su identidad de esa mesa; no rastreamos su dispositivo para impedirle crear otra identidad. Los reportes y decisiones se conservan durante un máximo de 90 días desde su resolución, o desde su envío si siguen pendientes. Al borrar una cuenta se eliminan sus comentarios enviados y se desvinculan sus identificadores de la moderación.</p>
       <p>Desde <b>Mi perfil</b> puedes cambiar tu nombre, descargar todos tus datos y borrar tu cuenta al instante. También puedes oponerte o reclamar ante la Agencia Española de Protección de Datos (aepd.es).</p>
       <h2 className="text-2xl">Seguridad</h2>
       <p>Conexión cifrada, contraseñas comprobadas contra filtraciones conocidas, y cada jugador solo puede leer su propio perfil y sus propias cartas.</p>
