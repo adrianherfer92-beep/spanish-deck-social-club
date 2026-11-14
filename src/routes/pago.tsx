@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useAuth } from "@/hooks/use-auth";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
+import { PAYMENTS_ENABLED } from "@/lib/room-billing";
 import { createGameCheckout, checkGamePayment } from "@/lib/payments.functions";
 import { createRoom } from "@/lib/rooms.functions";
 import { setRoomToken } from "@/lib/session";
@@ -19,6 +20,13 @@ export const Route = createFileRoute("/pago")({
 
 function PaymentPage() {
   const { game, session_id } = Route.useSearch();
+  if (!PAYMENTS_ENABLED) {
+    return <main><div className="mx-auto max-w-3xl px-4 py-10">
+      <h1 className="text-4xl">Partida adicional</h1>
+      <p className="mt-3 text-lg">Los pagos están desactivados temporalmente: crear partidas es gratis.</p>
+      <div className="mt-6"><Button asChild><Link to="/">Volver al inicio</Link></Button></div>
+    </div></main>;
+  }
   const { user, username, loading } = useAuth();
   const checkout = useServerFn(createGameCheckout);
   const check = useServerFn(checkGamePayment);

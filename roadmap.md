@@ -1,10 +1,11 @@
 # DiceBear avatars
-## Pagos por partida
+## Pagos por partida (EN PAUSA)
 - [x] Crear producto de 1 € y pago integrado, sin suscripciones.
 - [x] Aplicar una creación gratuita diaria por cuenta y excepción del administrador de forma atómica.
 - [x] Confirmar pagos antes de permitir una creación adicional y evitar reutilizar el pago.
 - [x] Mostrar límites, actualizar privacidad y probar compra, permisos y móvil.
-- [ ] Verificar consumo y concurrencia con una cuenta no administradora: la creación de cuentas temporales de prueba no está disponible.
+- [x] Pausar la pasarela: PAYMENTS_ENABLED=false, creación gratuita ilimitada, /pago muestra aviso.
+- [ ] Reactivar pagos en el futuro: poner PAYMENTS_ENABLED=true, reconectar Stripe y verificar consumo con una cuenta no administradora.
 ## Abandono y puntos
 - [x] Añadir eliminación por el creador y abandono con penalizaciones atómicas.
 - [x] Añadir confirmaciones y explicar el sistema de puntos.

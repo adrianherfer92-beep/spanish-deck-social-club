@@ -7,7 +7,7 @@ import { autoMove, advanceDeparted, resultRows } from "@/lib/room-points";
 import { resolvedAvatarSeed } from "@/lib/avatars";
 import { gifWaitSeconds, safeGif, GIF_VISIBLE_MS, type Gif } from "@/lib/gifs";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { environmentSchema } from "@/lib/room-billing";
+import { environmentSchema, PAYMENTS_ENABLED } from "@/lib/room-billing";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -64,7 +64,7 @@ export const createRoom = createServerFn({ method: "POST" })
     if (role.error) throw new Error("No se pudo comprobar tu acceso");
     const name = await displayName(userId, data.name);
     const token = randomToken();
-    const { data: room, error } = await sb.rpc("create_metered_room", { _user: userId, _environment: data.environment, _game: data.game, _name: name, _token: token });
+    const { data: room, error } = await sb.rpc("create_metered_room", { _user: userId, _environment: data.environment, _game: data.game, _name: name, _token: token, _payments_enabled: PAYMENTS_ENABLED });
     if (error) return { error: error.message };
     if (!room || typeof room !== "object" || Array.isArray(room) || typeof room.code !== "string") return { error: "No se pudo crear la sala" };
     return { code: room.code, token };

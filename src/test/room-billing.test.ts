@@ -1,17 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { creationAccess, madridDay, EXTRA_GAME_CENTS, paidRoomSession } from "../lib/room-billing";
+import { creationAccess, madridDay, EXTRA_GAME_CENTS, paidRoomSession, PAYMENTS_ENABLED } from "../lib/room-billing";
 
 describe("creación de partidas", () => {
-  it("permite una gratuita al día, no la segunda", () => {
+  it("con la pasarela en pausa, crear es siempre gratuito", () => {
+    expect(PAYMENTS_ENABLED).toBe(false);
     expect(creationAccess(false, false, 0)).toBe("free");
-    expect(creationAccess(false, true, 0)).toBe("checkout");
-  });
-  it("cada partida adicional cuesta exactamente 1 €", () => expect(EXTRA_GAME_CENTS).toBe(100));
-  it("solo el administrador tiene acceso ilimitado sin compra", () => {
+    expect(creationAccess(false, true, 0)).toBe("free");
     expect(creationAccess(true, true, 0)).toBe("admin");
-    expect(creationAccess(false, true, 0)).toBe("checkout");
   });
-  it("una compra permite crear una partida adicional", () => expect(creationAccess(false, true, 1)).toBe("paid"));
+  it("cada partida adicional costará exactamente 1 € al reactivar pagos", () => expect(EXTRA_GAME_CENTS).toBe(100));
   it("renueva a medianoche de Madrid, incluido horario de verano", () => {
     expect(madridDay(new Date("2026-11-14T23:00:00Z"))).toBe("2026-11-15");
     expect(madridDay(new Date("2026-07-14T22:00:00Z"))).toBe("2026-07-15");

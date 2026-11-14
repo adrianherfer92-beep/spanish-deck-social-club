@@ -465,16 +465,28 @@ export type Database = {
         }
         Returns: undefined
       }
-      create_metered_room: {
-        Args: {
-          _environment: string
-          _game: string
-          _name: string
-          _token: string
-          _user: string
-        }
-        Returns: Json
-      }
+      create_metered_room:
+        | {
+            Args: {
+              _environment: string
+              _game: string
+              _name: string
+              _token: string
+              _user: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _environment: string
+              _game: string
+              _name: string
+              _payments_enabled?: boolean
+              _token: string
+              _user: string
+            }
+            Returns: Json
+          }
       exit_room: {
         Args: {
           _delete: boolean

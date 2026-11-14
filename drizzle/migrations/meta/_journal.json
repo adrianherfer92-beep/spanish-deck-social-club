@@ -113,6 +113,13 @@
       "when": 1794658042023,
       "tag": "0015_lock_room_billing_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794659741662,
+      "tag": "0016_pause_payments_unlimited_free_rooms",
+      "breakpoints": true
     }
   ]
 }
