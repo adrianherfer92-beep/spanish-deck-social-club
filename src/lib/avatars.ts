@@ -13,3 +13,11 @@ export function avatarSeed(id: string): string {
 export function avatarDataUri(seed: string): string {
   return createAvatar(bottts, { seed, size: 96 }).toDataUri();
 }
+
+export function randomAvatarSeed(): string {
+  return `timba-${crypto.randomUUID()}`;
+}
+
+export function resolvedAvatarSeed(id: string, chosen?: string | null): string {
+  return chosen ?? avatarSeed(id);
+}

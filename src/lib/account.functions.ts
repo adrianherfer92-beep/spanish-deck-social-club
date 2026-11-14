@@ -8,7 +8,7 @@ export const exportMyData = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const uid = context.userId;
     const [{ data: profile }, { data: results }, { data: u }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("username, points, games_played, wins, created_at, privacy_accepted_at").eq("id", uid).maybeSingle(),
+      supabaseAdmin.from("profiles").select("username, points, games_played, wins, created_at, privacy_accepted_at, avatar_seed").eq("id", uid).maybeSingle(),
       supabaseAdmin.from("game_results").select("game, position, points, created_at").eq("user_id", uid),
       supabaseAdmin.auth.admin.getUserById(uid),
     ]);

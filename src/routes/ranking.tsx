@@ -6,7 +6,7 @@ import { getRanking } from "@/lib/rooms.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { avatarSeed } from "@/lib/avatars";
+import { resolvedAvatarSeed } from "@/lib/avatars";
 
 export const Route = createFileRoute("/ranking")({
   head: () => ({
@@ -70,7 +70,7 @@ function Ranking() {
               {q.data.rows.map((r, i) => (
                 <tr key={r.id} className={cn("border-b border-border/50", r.id === q.data.me && "bg-secondary")}>
                   <td className="p-3 font-display text-xl text-accent">{i + 1}</td>
-                  <td className="p-3 font-semibold"><div className="flex items-center gap-2"><PlayerAvatar seed={avatarSeed(r.id)} name={r.username} className="h-9 w-9" /><span>{r.username}</span></div></td>
+                  <td className="p-3 font-semibold"><div className="flex items-center gap-2"><PlayerAvatar seed={resolvedAvatarSeed(r.id, r.avatar_seed)} name={r.username} className="h-9 w-9" /><span>{r.username}</span></div></td>
                   <td className="p-3 text-right">{r.games_played}</td>
                   <td className="p-3 text-right">{r.wins}</td>
                   <td className="p-3 text-right font-display text-xl">{r.points}</td>

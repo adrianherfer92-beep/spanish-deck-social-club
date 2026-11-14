@@ -28,7 +28,7 @@ function Privacidad() {
       </ul>
       <p>Si juegas como invitado no creamos cuenta: tu nombre solo vive en la mesa y tu navegador guarda una clave para reconectar.</p>
       <h2 className="text-2xl">Avatares</h2>
-      <p>Tu avatar se genera en La Timba con DiceBear a partir de un identificador técnico, sin usar tu correo, tu nombre real ni una foto. No enviamos datos ni solicitudes a DiceBear y no guardamos imágenes adicionales de tu perfil.</p>
+      <p>Tu avatar se genera en La Timba con DiceBear a partir de un identificador técnico, sin usar tu correo, tu nombre real ni una foto. Si eliges otro avatar, guardamos únicamente su código aleatorio en tu perfil para mostrarlo también en las mesas y el ranking. No enviamos datos ni solicitudes a DiceBear ni guardamos imágenes adicionales.</p>
       <p className="text-xs text-muted-foreground">Avatares <a href="https://bottts.com/" target="_blank" rel="noreferrer" className="underline">Bottts de Pablo Stanley</a>, mediante <a href="https://www.dicebear.com/" target="_blank" rel="noreferrer" className="underline">DiceBear</a>. Diseño libre para uso personal y comercial.</p>
       <h2 className="text-2xl">Para qué y base legal</h2>
       <p>Para prestar el servicio que pides (ejecución del servicio, art. 6.1.b RGPD) y con tu consentimiento al crear el perfil.</p>

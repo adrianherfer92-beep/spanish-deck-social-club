@@ -4,7 +4,7 @@ import { z } from "zod";
 import { ENGINES } from "@/lib/games";
 import { MoveError } from "@/lib/games/types";
 import { pointsForPosition } from "@/lib/games/cards";
-import { avatarSeed } from "@/lib/avatars";
+import { resolvedAvatarSeed } from "@/lib/avatars";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -110,6 +110,13 @@ export const getRoom = createServerFn({ method: "POST" })
     const { sb, room, players, me } = await loadRoom(data.code, data.token);
     const engine = ENGINES[room.game];
     const myIndex = me ? players.findIndex((p) => p.id === me.id) : -1;
+    const profileIds = players.flatMap((p) => p.user_id ? [p.user_id] : []);
+    const avatars = new Map<string, string | null>();
+    if (profileIds.length) {
+      const { data: profiles, error } = await sb.from("profiles").select("id, avatar_seed").in("id", profileIds);
+      if (error) throw new Error("No se pudieron cargar los avatares");
+      for (const p of profiles ?? []) avatars.set(p.id, p.avatar_seed);
+    }
     let results: { name: string; position: number; points: number; registered: boolean }[] | null = null;
     if (room.status === "finished") {
       const { data: r } = await sb.from("game_results").select("*").eq("room_id", room.id).order("position");
@@ -125,7 +132,7 @@ export const getRoom = createServerFn({ method: "POST" })
       joined: !!me,
       minPlayers: engine.minPlayers,
       maxPlayers: engine.maxPlayers,
-      players: players.map((p) => ({ id: p.id, name: p.name, avatarSeed: avatarSeed(p.user_id ?? p.id), registered: !!p.user_id, host: p.id === room.host_player_id })),
+      players: players.map((p) => ({ id: p.id, name: p.name, avatarSeed: resolvedAvatarSeed(p.user_id ?? p.id, p.user_id ? avatars.get(p.user_id) : null), registered: !!p.user_id, host: p.id === room.host_player_id })),
       view: room.state && room.status !== "lobby" ? (engine.view(room.state, room.status === "finished" ? -1 : myIndex) as any) : null,
       finalView: room.state && room.status === "finished" ? (engine.view(room.state, myIndex) as any) : null,
       results,
@@ -231,14 +238,14 @@ export const getRanking = createServerFn({ method: "POST" })
         const { data: mates } = await sb.from("room_players").select("user_id").in("room_id", roomIds).not("user_id", "is", null);
         ids = [...new Set([userId, ...(mates ?? []).map((m) => m.user_id as string)])];
       }
-      const { data: rows } = await sb.from("profiles").select("id, username, points, games_played, wins").in("id", ids).order("points", { ascending: false });
+      const { data: rows } = await sb.from("profiles").select("id, username, points, games_played, wins, avatar_seed").in("id", ids).order("points", { ascending: false });
       return { needsAuth: false, rows: (rows ?? []) as Row[], me: userId };
     }
-    const { data: rows } = await sb.from("profiles").select("id, username, points, games_played, wins").order("points", { ascending: false }).limit(50);
+    const { data: rows } = await sb.from("profiles").select("id, username, points, games_played, wins, avatar_seed").order("points", { ascending: false }).limit(50);
     return { needsAuth: false, rows: (rows ?? []) as Row[], me: userId };
   });
 
-type Row = { id: string; username: string; points: number; games_played: number; wins: number };
+type Row = { id: string; username: string; points: number; games_played: number; wins: number; avatar_seed: string | null };
 
 /** Jugada automática cuando se agota el tiempo: pasa, se planta, roba o echa la primera carta válida. */
 function autoMove(engine: (typeof ENGINES)[string], state: any, seat: number) {

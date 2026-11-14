@@ -57,6 +57,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_seed: string | null
           created_at: string
           games_played: number
           id: string
@@ -66,6 +67,7 @@ export type Database = {
           wins: number
         }
         Insert: {
+          avatar_seed?: string | null
           created_at?: string
           games_played?: number
           id: string
@@ -75,6 +77,7 @@ export type Database = {
           wins?: number
         }
         Update: {
+          avatar_seed?: string | null
           created_at?: string
           games_played?: number
           id?: string

@@ -4,4 +4,5 @@
 - [x] Document privacy and attribution.
 - [x] Verify two real guests from lobby into gameplay on desktop and mobile, with no DiceBear network requests.
 - [x] Run avatar and routing tests; verify preview compilation.
-- [ ] Verify registered profile and ranking avatars — blocked because there are no registered accounts.
+- [x] Add shuffle preview and save the chosen avatar under owner-only profile access.
+- [x] Verify saved avatars in profile, ranking and rooms with the current signed-in player.

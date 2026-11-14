@@ -7,7 +7,8 @@ import { exportMyData, deleteMyAccount } from "@/lib/account.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { avatarSeed } from "@/lib/avatars";
+import { randomAvatarSeed, resolvedAvatarSeed } from "@/lib/avatars";
+import { Shuffle, Save, Undo2 } from "lucide-react";
 
 export const Route = createFileRoute("/perfil")({
   head: () => ({
@@ -23,19 +24,22 @@ export const Route = createFileRoute("/perfil")({
   component: Perfil,
 });
 
-type Prof = { username: string; points: number; games_played: number; wins: number };
+type Prof = { username: string; points: number; games_played: number; wins: number; avatar_seed: string | null };
 
 function Perfil() {
   const { user, loading } = useAuth();
   const [prof, setProf] = useState<Prof | null>(null);
   const [name, setName] = useState("");
+  const [chosenAvatar, setChosenAvatar] = useState<string | null>(null);
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("username, points, games_played, wins").eq("id", user.id).maybeSingle().then(({ data }) => {
+    supabase.from("profiles").select("username, points, games_played, wins, avatar_seed").eq("id", user.id).maybeSingle().then(({ data }) => {
       if (data) {
         setProf(data);
         setName(data.username);
+        setChosenAvatar(data.avatar_seed);
       }
     });
   }, [user]);
@@ -55,6 +59,22 @@ function Perfil() {
     const { error } = await supabase.from("profiles").update({ username: n }).eq("id", user.id);
     if (error) toast.error(error.code === "23505" ? "Ese nombre ya está cogido" : error.message);
     else toast.success("Nombre actualizado");
+  };
+
+  const avatarChanged = chosenAvatar !== prof?.avatar_seed;
+  const saveAvatar = async () => {
+    if (!prof || !chosenAvatar || savingAvatar) return;
+    setSavingAvatar(true);
+    try {
+      const { data, error } = await supabase.from("profiles").update({ avatar_seed: chosenAvatar }).eq("id", user.id).select("avatar_seed").single();
+      if (error) throw error;
+      setProf((current) => current ? { ...current, avatar_seed: data.avatar_seed } : current);
+      toast.success("Avatar guardado");
+    } catch {
+      toast.error("No se pudo guardar el avatar. Inténtalo de nuevo.");
+    } finally {
+      setSavingAvatar(false);
+    }
   };
 
   const download = async () => {
@@ -78,8 +98,15 @@ function Perfil() {
     <main className="mx-auto max-w-xl px-4 py-12">
       <h1 className="text-5xl">Mi perfil</h1>
       <div className="mt-6 flex items-center gap-4">
-        <PlayerAvatar seed={avatarSeed(user.id)} name={prof?.username ?? "Jugador"} className="h-24 w-24" />
-        <span className="break-all font-display text-2xl text-accent">{prof?.username ?? "Jugador"}</span>
+        <PlayerAvatar seed={resolvedAvatarSeed(user.id, chosenAvatar)} name={prof?.username ?? "Jugador"} className="h-24 w-24" />
+        <div className="min-w-0 flex-1">
+          <p className="break-all font-display text-2xl text-accent">{prof?.username ?? "Jugador"}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="icon" aria-label="Probar otro avatar" title="Probar otro avatar" disabled={!prof || savingAvatar} onClick={() => setChosenAvatar(randomAvatarSeed())}><Shuffle /></Button>
+            <Button size="sm" disabled={!prof || !avatarChanged || savingAvatar} onClick={saveAvatar}><Save />{savingAvatar ? "Guardando…" : "Guardar avatar"}</Button>
+            {avatarChanged && prof && <Button variant="ghost" size="icon" aria-label="Descartar cambio de avatar" title="Descartar cambio de avatar" disabled={savingAvatar} onClick={() => setChosenAvatar(prof.avatar_seed)}><Undo2 /></Button>}
+          </div>
+        </div>
       </div>
       <div className="poster-frame mt-6 rounded-lg bg-card p-6">
         <label className="text-sm text-muted-foreground">Nombre de jugador</label>
