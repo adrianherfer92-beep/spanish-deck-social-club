@@ -23,7 +23,7 @@ function Privacidad() {
       <ul className="list-disc space-y-1 pl-5">
         <li><b>Correo y contraseña cifrada</b> (o tu cuenta de Google): solo para iniciar sesión. Nunca se muestran a otros jugadores.</li>
         <li><b>Nombre de jugador</b>: el alias que eliges; es lo único visible en mesas y ranking. No uses tu nombre real si no quieres.</li>
-        <li><b>Puntos, partidas y victorias</b>, y el resultado de cada partida.</li>
+        <li><b>Puntos, partidas y victorias</b>, el resultado de cada partida y las penalizaciones por abandono o eliminación (motivo, puntos y fecha). Estas penalizaciones se conservan mientras tengas cuenta y se borran al eliminarla.</li>
         <li><b>Fecha en que aceptaste esta política.</b></li>
       </ul>
       <p>Si juegas como invitado no creamos cuenta: tu nombre solo vive en la mesa y tu navegador guarda una clave para reconectar.</p>

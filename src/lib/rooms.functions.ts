@@ -3,7 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { ENGINES } from "@/lib/games";
 import { MoveError } from "@/lib/games/types";
-import { pointsForPosition } from "@/lib/games/cards";
+import { autoMove, advanceDeparted, resultRows } from "@/lib/room-points";
 import { resolvedAvatarSeed } from "@/lib/avatars";
 import { gifWaitSeconds, safeGif, GIF_VISIBLE_MS, type Gif } from "@/lib/gifs";
 
@@ -69,7 +69,7 @@ export const createRoom = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    await sb.from("rooms").update({ host_player_id: p.id }).eq("id", room.id);
+    await sb.from("rooms").update({ host_player_id: p.id, creator_player_id: p.id }).eq("id", room.id);
     return { code: room.code, token };
   });
 
@@ -84,6 +84,7 @@ export const joinRoom = createServerFn({ method: "POST" })
     const list = players ?? [];
     if (userId) {
       const mine = list.find((p) => p.user_id === userId);
+      if (mine?.left_at) throw new Error("Has abandonado esta partida. Espera a la siguiente.");
       if (mine) return { code: room.code, token: mine.token };
     }
     if (room.status !== "lobby") throw new Error("La partida ya ha empezado");
@@ -104,7 +105,7 @@ async function loadRoom(code: string, token: string) {
   if (!room) throw new Error("Sala no encontrada");
   const { data: players } = await sb.from("room_players").select("*").eq("room_id", room.id).order("seat");
   const list = players ?? [];
-  const me = list.find((p) => p.token === token) ?? null;
+  const me = list.find((p) => p.token === token && !p.left_at) ?? null;
   const { assertNotSuspended } = await import("./moderation.server");
   await assertNotSuspended(sb, await optionalUserId());
   if (me) await assertNotSuspended(sb, me.user_id, me.id);
@@ -135,14 +136,15 @@ export const getRoom = createServerFn({ method: "POST" })
     return {
       code: room.code,
       game: room.game,
-      status: room.status as "lobby" | "playing" | "finished",
+      status: room.status as "lobby" | "playing" | "finished" | "cancelled",
       version: room.version,
       isHost: !!me && me.id === room.host_player_id,
+      isCreator: !!me && me.id === room.creator_player_id,
       mySeat: myIndex,
       joined: !!me,
       minPlayers: engine.minPlayers,
       maxPlayers: engine.maxPlayers,
-      players: players.map((p) => ({ id: p.id, name: p.name, avatarSeed: resolvedAvatarSeed(p.user_id ?? p.id, p.user_id ? avatars.get(p.user_id) : null), registered: !!p.user_id, host: p.id === room.host_player_id })),
+      players: players.map((p) => ({ id: p.id, name: p.left_at ? `${p.name} (ha salido)` : p.name, avatarSeed: resolvedAvatarSeed(p.user_id ?? p.id, p.user_id ? avatars.get(p.user_id) : null), registered: !!p.user_id, host: p.id === room.host_player_id })),
       view: room.state && room.status !== "lobby" ? (engine.view(room.state, room.status === "finished" ? -1 : myIndex) as any) : null,
       finalView: room.state && room.status === "finished" ? (engine.view(room.state, myIndex) as any) : null,
       results,
@@ -159,11 +161,14 @@ export const startGame = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { sb, room, players, me } = await loadRoom(data.code, data.token);
     if (!me || me.id !== room.host_player_id) throw new Error("Solo el anfitrión puede empezar");
+    if (room.status === "cancelled") throw new Error("La partida ha sido eliminada");
+    const activePlayers = players.filter(p => !p.left_at);
     if (room.status === "playing") throw new Error("La partida ya ha empezado");
     const engine = ENGINES[room.game];
-    if (players.length < engine.minPlayers) throw new Error(`Hacen falta al menos ${engine.minPlayers} jugadores`);
+    if (activePlayers.length < engine.minPlayers) throw new Error(`Hacen falta al menos ${engine.minPlayers} jugadores`);
     if (room.status === "finished") await sb.from("game_results").delete().eq("room_id", room.id);
-    const state = engine.init(players.length);
+    await sb.from("room_players").delete().eq("room_id", room.id).not("left_at", "is", null);
+    const state = engine.init(activePlayers.length);
     await sb.from("rooms").update({ status: "playing", state: state as any, version: room.version + 1 }).eq("id", room.id);
     await notify(room.code);
     return { ok: true };
@@ -185,7 +190,7 @@ export const makeMove = createServerFn({ method: "POST" })
     const seat = players.findIndex((p) => p.id === me.id);
     let next;
     try {
-      next = engine.move(room.state as any, seat, data.action);
+      next = advanceDeparted(engine, engine.move(room.state as any, seat, data.action), players);
     } catch (e) {
       if (e instanceof MoveError) return { ok: false as const, error: e.message };
       throw e;
@@ -199,10 +204,7 @@ export const makeMove = createServerFn({ method: "POST" })
       .select("id");
     if (!updated?.length) return { ok: false as const, error: "Alguien jugó a la vez, inténtalo de nuevo." };
     if (ranking) {
-      const rows = ranking.map((s, i) => {
-        const p = players[s];
-        return { user_id: p.user_id, name: p.name, position: i + 1, points: p.user_id ? pointsForPosition(i + 1) : 0 };
-      });
+      const rows = resultRows(ranking, players);
       const { error } = await sb.rpc("apply_game_results", { _room: room.id, _game: room.game, _rows: rows });
       if (error) console.error("apply_game_results", error);
     }
@@ -215,6 +217,8 @@ export const backToLobby = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { sb, room, me } = await loadRoom(data.code, data.token);
     if (!me || me.id !== room.host_player_id) throw new Error("Solo el anfitrión puede hacerlo");
+    if (room.status !== "finished") throw new Error("La partida aún no ha terminado");
+    await sb.from("room_players").delete().eq("room_id", room.id).not("left_at", "is", null);
     await sb.from("game_results").delete().eq("room_id", room.id);
     await sb.from("rooms").update({ status: "lobby", state: null, version: room.version + 1 }).eq("id", room.id);
     await notify(room.code);
@@ -225,15 +229,25 @@ export const leaveRoom = createServerFn({ method: "POST" })
   .inputValidator(z.object({ code: z.string(), token: z.string() }))
   .handler(async ({ data }) => {
     const { sb, room, players, me } = await loadRoom(data.code, data.token);
-    if (!me || room.status === "playing") return { ok: false };
-    await sb.from("room_players").delete().eq("id", me.id);
-    if (me.id === room.host_player_id) {
-      const other = players.find((p) => p.id !== me.id);
-      if (other) await sb.from("rooms").update({ host_player_id: other.id }).eq("id", room.id);
-      else await sb.from("rooms").delete().eq("id", room.id);
-    }
+    if (!me) throw new Error("No estás en esta sala");
+    const departed = players.map(p => p.id === me.id ? { ...p, left_at: new Date().toISOString() } : p);
+    const next = room.status === "playing" ? advanceDeparted(ENGINES[room.game], room.state, departed) : null;
+    const ranking = next ? ENGINES[room.game].ranking(next) : null;
+    const { data: penalty, error } = await sb.rpc("exit_room", { _room: room.id, _player: me.id, _token: data.token, _delete: false, _version: room.version, _state: next as any, _rows: ranking ? resultRows(ranking, departed) : null });
+    if (error) throw new Error(error.message);
     await notify(room.code);
-    return { ok: true };
+    return { ok: true, penalty: penalty ?? 0 };
+  });
+
+export const deleteRoom = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ code: z.string(), token: z.string() }))
+  .handler(async ({ data }) => {
+    const { sb, room, me } = await loadRoom(data.code, data.token);
+    if (!me || me.id !== room.creator_player_id) throw new Error("Solo el creador puede eliminar la partida");
+    const { data: penalty, error } = await sb.rpc("exit_room", { _room: room.id, _player: me.id, _token: data.token, _delete: true, _version: room.version });
+    if (error) throw new Error(error.message);
+    await notify(room.code);
+    return { ok: true, penalty: penalty ?? 0 };
   });
 
 export const getRanking = createServerFn({ method: "POST" })
@@ -259,27 +273,6 @@ export const getRanking = createServerFn({ method: "POST" })
 
 type Row = { id: string; username: string; points: number; games_played: number; wins: number; avatar_seed: string | null };
 
-/** Jugada automática cuando se agota el tiempo: pasa, se planta, roba o echa la primera carta válida. */
-function autoMove(engine: (typeof ENGINES)[string], state: any, seat: number) {
-  let s = state;
-  for (let guard = 0; guard < 60; guard++) {
-    const view: any = engine.view(s, seat);
-    const tries: any[] = [{ type: "pass" }, { type: "stand" }, ...(view.hand ?? []).map((c: string) => ({ type: "play", card: c })), { type: "draw" }];
-    let moved = false;
-    for (const a of tries) {
-      try {
-        const next = engine.move(s, seat, a);
-        s = next;
-        moved = true;
-        if (a.type !== "draw") return s;
-        break;
-      } catch {}
-    }
-    if (!moved) return null;
-  }
-  return null;
-}
-
 export const skipTurn = createServerFn({ method: "POST" })
   .inputValidator(z.object({ code: z.string(), token: z.string() }))
   .handler(async ({ data }) => {
@@ -290,8 +283,9 @@ export const skipTurn = createServerFn({ method: "POST" })
     const engine = ENGINES[room.game];
     const turn = (room.state as any)?.turn;
     if (typeof turn !== "number") return { ok: false };
-    const next = autoMove(engine, room.state, turn);
-    if (!next) return { ok: false };
+    const moved = autoMove(engine, room.state, turn);
+    if (!moved) return { ok: false };
+    const next = advanceDeparted(engine, moved, players);
     const ranking = engine.ranking(next);
     const { data: updated } = await sb
       .from("rooms")
@@ -301,10 +295,7 @@ export const skipTurn = createServerFn({ method: "POST" })
       .select("id");
     if (!updated?.length) return { ok: false };
     if (ranking) {
-      const rows = ranking.map((s, i) => {
-        const p = players[s];
-        return { user_id: p.user_id, name: p.name, position: i + 1, points: p.user_id ? pointsForPosition(i + 1) : 0 };
-      });
+      const rows = resultRows(ranking, players);
       await sb.rpc("apply_game_results", { _room: room.id, _game: room.game, _rows: rows });
     }
     await notify(room.code);

@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { resolvedAvatarSeed } from "@/lib/avatars";
+import { PointsRules } from "@/components/PointsRules";
 
 export const Route = createFileRoute("/ranking")({
   head: () => ({
@@ -80,6 +81,7 @@ function Ranking() {
           </table>
         )}
       </div>
+      <PointsRules />
     </main>
   );
 }

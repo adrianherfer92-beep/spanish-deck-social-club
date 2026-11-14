@@ -170,6 +170,48 @@ export type Database = {
         }
         Relationships: []
       }
+      point_penalties: {
+        Row: {
+          created_at: string
+          id: string
+          points: number
+          reason: string
+          room_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          points: number
+          reason: string
+          room_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          points?: number
+          reason?: string
+          room_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_penalties_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_penalties_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_seed: string | null
@@ -210,6 +252,7 @@ export type Database = {
           gif_sent_at: string | null
           id: string
           joined_at: string
+          left_at: string | null
           name: string
           room_id: string
           seat: number
@@ -222,6 +265,7 @@ export type Database = {
           gif_sent_at?: string | null
           id?: string
           joined_at?: string
+          left_at?: string | null
           name: string
           room_id: string
           seat: number
@@ -234,6 +278,7 @@ export type Database = {
           gif_sent_at?: string | null
           id?: string
           joined_at?: string
+          left_at?: string | null
           name?: string
           room_id?: string
           seat?: number
@@ -254,6 +299,7 @@ export type Database = {
         Row: {
           code: string
           created_at: string
+          creator_player_id: string | null
           game: string
           host_player_id: string | null
           id: string
@@ -266,6 +312,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string
+          creator_player_id?: string | null
           game: string
           host_player_id?: string | null
           id?: string
@@ -278,6 +325,7 @@ export type Database = {
         Update: {
           code?: string
           created_at?: string
+          creator_player_id?: string | null
           game?: string
           host_player_id?: string | null
           id?: string
@@ -319,6 +367,18 @@ export type Database = {
       claim_giphy_search: { Args: { _player: string }; Returns: boolean }
       cleanup_abandoned_rooms: { Args: never; Returns: undefined }
       cleanup_moderation: { Args: never; Returns: undefined }
+      exit_room: {
+        Args: {
+          _delete: boolean
+          _player: string
+          _room: string
+          _rows?: Json
+          _state?: Json
+          _token: string
+          _version: number
+        }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

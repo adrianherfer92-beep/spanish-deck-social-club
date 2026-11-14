@@ -30,6 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- Room cancellation and departures use the service-only exit_room RPC to lock room version, verify membership and creator ownership, and apply penalties atomically; retain departed seat indexes and auto-play those seats so all game engines continue safely. Cancelled rooms retain result history but expose no state; penalty records cascade on account deletion and are included in data exports.
 - Moderation roles are separate from profiles with a unique admin index; privileged server functions validate roles via the caller's RLS client. Reports and decisions use service-only atomic RPCs, and every room access checks account and room-player suspensions to prevent token-based bypasses.
 - GIPHY reactions use the connector gateway only from room server functions; validate membership and general-audience media, enforce sending atomically in a service-only RPC, and keep reactions in player rows so GIF activity never resets turn timers. External GIF loading is opt-in to avoid unsolicited third-party requests.
 - Generate DiceBear Bottts avatars locally as SVG data URIs; registered players use their owner-editable profiles.avatar_seed choice with an account-ID-derived fallback, and guests use their room-player ID, so profile, ranking and room avatars stay consistent without external tracking or image storage.

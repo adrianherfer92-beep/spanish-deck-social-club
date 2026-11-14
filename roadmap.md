@@ -1,4 +1,8 @@
 # DiceBear avatars
+## Abandono y puntos
+- [x] Añadir eliminación por el creador y abandono con penalizaciones atómicas.
+- [x] Añadir confirmaciones y explicar el sistema de puntos.
+- [x] Probar penalizaciones, permisos y continuidad de las partidas.
 ## Moderación
 - [x] Añadir un único administrador, reportes privados limitados y decisiones auditadas.
 - [x] Aplicar suspensiones temporales a cuentas e invitados en todas las acciones de mesa.

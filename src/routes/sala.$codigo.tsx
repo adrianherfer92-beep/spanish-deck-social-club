@@ -1,12 +1,14 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Trash2, LogOut } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { getRoom, joinRoom, startGame, makeMove, backToLobby, kickPlayer, setTurnTimer, skipTurn, getOrigin } from "@/lib/rooms.functions";
+import { getRoom, joinRoom, startGame, makeMove, backToLobby, kickPlayer, setTurnTimer, skipTurn, getOrigin, deleteRoom, leaveRoom } from "@/lib/rooms.functions";
+import { exitPenalty } from "@/lib/room-points";
 import { QRCodeSVG } from "qrcode.react";
 import { useTurnAlert } from "@/hooks/use-turn-alert";
 import { ogImageMeta } from "@/lib/og";
-import { getGuestName, getRoomToken, setGuestName, setRoomToken } from "@/lib/session";
+import { getGuestName, getRoomToken, setGuestName, setRoomToken, clearLastRoom } from "@/lib/session";
 import { gameInfo } from "@/lib/games/info";
 import { pointsForPosition } from "@/lib/games/cards";
 import { useAuth } from "@/hooks/use-auth";
@@ -42,6 +44,28 @@ function Sala() {
   const { user, username, loading } = useAuth();
   const [token, setToken] = useState(() => getRoomToken(code));
   const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+
+  const exit = async (deleting: boolean) => {
+    if (!room) return;
+    const registered = room.players[room.mySeat]?.registered ?? false;
+    const penalty = exitPenalty(room.status === "playing", deleting, registered);
+    const warning = deleting
+      ? `¿Eliminar la partida para todos?${room.status === "playing" ? " Si eliminas una partida en progreso, pierdes 1 punto; los demás no pierden puntos." : " No hay penalización porque no está en progreso."}`
+      : `¿Salir de la partida?${room.status === "playing" ? " Si sales antes de terminar, pierdes 2 puntos y no recibirás puntos al finalizar. Tus turnos se completarán automáticamente." : " No hay penalización."}`;
+    if (!window.confirm(`${warning}${!registered ? " Como invitado, no ganas ni pierdes puntos." : ""}`)) return;
+    setBusy(true);
+    try {
+      await (deleting ? deleteRoom : leaveRoom)({ data: { code, token } });
+      localStorage.removeItem(`sala:${code}`);
+      clearLastRoom();
+      toast.success(`${deleting ? "Partida eliminada" : "Has salido de la partida"}${penalty ? `: −${penalty} punto${penalty === 1 ? "" : "s"}` : ""}`);
+      await navigate({ to: "/" });
+    } catch (e) {
+      toast.error((e as Error).message);
+      await q.refetch();
+    } finally { setBusy(false); }
+  };
 
   const q = useQuery({
     queryKey: ["sala", code, token],
@@ -111,6 +135,8 @@ function Sala() {
 
   const info = gameInfo(room.game)!;
 
+  if (room.status === "cancelled") return <Centered><h1 className="text-3xl">El creador ha eliminado la partida</h1><p className="mt-3">Esta mesa ya no está disponible.</p><Button asChild className="mt-5"><Link to="/">Volver al inicio</Link></Button></Centered>;
+
   if (!room.joined) {
     return <JoinForm code={code} room={room} user={!!user} username={username} onJoined={(t) => { setRoomToken(code, t); setToken(t); }} />;
   }
@@ -126,7 +152,12 @@ function Sala() {
           Ver reglas
         </Link>
         <ReportPlayer code={code} token={token} players={room.players} mySeat={room.mySeat} />
+        <div className="flex flex-wrap gap-2">
+          {room.isCreator && <Button variant="destructive" size="sm" disabled={busy} onClick={() => exit(true)}><Trash2 className="mr-2 h-4 w-4" />Eliminar partida</Button>}
+          {(!room.isCreator || room.status !== "playing") && <Button variant="outline" size="sm" disabled={busy} onClick={() => exit(false)}><LogOut className="mr-2 h-4 w-4" />Salir de la partida</Button>}
+        </div>
       </div>
+      {room.status === "playing" && <p className="mb-5 text-sm text-muted-foreground">{room.isCreator ? "Eliminar esta partida en progreso cuesta 1 punto." : "Abandonar antes de terminar cuesta 2 puntos."} Los invitados no pierden puntos. <Link to="/ranking" hash="points-title" className="text-accent underline">Sistema de puntos</Link></p>}
 
       {room.status === "lobby" && (
         <Lobby

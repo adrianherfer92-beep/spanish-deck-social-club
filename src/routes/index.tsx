@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlayingCard } from "@/components/game/PlayingCard";
 import { cn } from "@/lib/utils";
+import { PointsRules } from "@/components/PointsRules";
 
 export const Route = createFileRoute("/")({
   loader: () => getOrigin(),
@@ -194,6 +195,7 @@ function Index() {
           )}
         </div>
       </section>
+      <div className="mx-auto max-w-6xl px-4"><PointsRules /></div>
     </main>
   );
 }

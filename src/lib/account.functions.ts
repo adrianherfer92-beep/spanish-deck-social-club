@@ -7,12 +7,13 @@ export const exportMyData = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const uid = context.userId;
-    const [{ data: profile }, { data: results }, { data: u }, { data: reports }, { data: suspensions }] = await Promise.all([
+    const [{ data: profile }, { data: results }, { data: u }, { data: reports }, { data: suspensions }, { data: penalties }] = await Promise.all([
       supabaseAdmin.from("profiles").select("username, points, games_played, wins, created_at, privacy_accepted_at, avatar_seed").eq("id", uid).maybeSingle(),
       supabaseAdmin.from("game_results").select("game, position, points, created_at").eq("user_id", uid),
       supabaseAdmin.auth.admin.getUserById(uid),
       supabaseAdmin.from("player_reports").select("reason,comment,status,created_at,resolved_at").eq("reporter_user_id", uid),
       supabaseAdmin.from("moderation_suspensions").select("until_at").eq("user_id", uid),
+      supabaseAdmin.from("point_penalties").select("reason,points,created_at").eq("user_id", uid),
     ]);
     return {
       exportado: new Date().toISOString(),
@@ -21,6 +22,7 @@ export const exportMyData = createServerFn({ method: "POST" })
       partidas: results ?? [],
       reportes_enviados: reports ?? [],
       suspensiones: suspensions ?? [],
+      penalizaciones: penalties ?? [],
     };
   });
 
