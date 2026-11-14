@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import { Check, Eye, EyeOff, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
@@ -31,6 +32,15 @@ function AuthPage() {
   const [sent, setSent] = useState(false);
   const [consent, setConsent] = useState(false);
   const [forgot, setForgot] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+
+  const pwRules = [
+    { ok: password.length >= 8, label: "Al menos 8 caracteres" },
+    { ok: /[a-z]/.test(password), label: "Una letra minúscula" },
+    { ok: /[A-Z]/.test(password), label: "Una letra mayúscula" },
+    { ok: /[0-9]/.test(password), label: "Un número" },
+  ];
+  const pwValid = pwRules.every((r) => r.ok);
 
   const sendReset = async () => {
     if (!email) { toast.error("Escribe tu correo"); return; }
@@ -46,6 +56,7 @@ function AuthPage() {
     try {
       if (mode === "up") {
         if (username.trim().length < 2) throw new Error("Elige un nombre de al menos 2 letras");
+        if (!pwValid) throw new Error("La contraseña no cumple los requisitos");
         if (!consent) throw new Error("Debes aceptar la política de privacidad");
         const { error } = await supabase.auth.signUp({
           email,
@@ -110,7 +121,32 @@ function AuthPage() {
               </div>
               <div>
                 <Label htmlFor="p">Contraseña</Label>
-                <Input id="p" type="password" minLength={8} autoComplete={mode === "up" ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <div className="relative">
+                  <Input id="p" type={showPw ? "text" : "password"} minLength={8} className="pr-10" autoComplete={mode === "up" ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <button
+                    type="button"
+                    aria-label={showPw ? "Ocultar contraseña" : "Ver contraseña"}
+                    title="Mantén pulsado para ver la contraseña"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 touch-none select-none text-muted-foreground hover:text-foreground"
+                    onPointerDown={(e) => { e.preventDefault(); setShowPw(true); }}
+                    onPointerUp={() => setShowPw(false)}
+                    onPointerLeave={() => setShowPw(false)}
+                    onPointerCancel={() => setShowPw(false)}
+                    onContextMenu={(e) => e.preventDefault()}
+                  >
+                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {mode === "up" && (
+                  <ul className="mt-2 space-y-1 text-xs">
+                    {pwRules.map((r) => (
+                      <li key={r.label} className={`flex items-center gap-1.5 ${r.ok ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}`}>
+                        {r.ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                        {r.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
               {mode === "up" && <p className="text-xs text-muted-foreground">Tu nombre de jugador es público en mesas y ranking; no hace falta que sea tu nombre real.</p>}
               <Button type="submit" className="w-full" disabled={busy || (mode === "up" && !consent)}>
