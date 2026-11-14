@@ -57,6 +57,13 @@
       "when": 1794650990436,
       "tag": "0007_profile_avatar_choice",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794652330222,
+      "tag": "0008_giphy_room_reactions",
+      "breakpoints": true
     }
   ]
 }

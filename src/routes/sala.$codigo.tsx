@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BOARDS, Seats } from "@/components/game/boards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { GifReactions } from "@/components/game/GifReactions";
 
 export const Route = createFileRoute("/sala/$codigo")({
   // Datos en el servidor (para la vista previa al compartir), pantalla solo en el navegador.
@@ -143,6 +144,7 @@ function Sala() {
       {room.status === "playing" && room.view && (
         BOARDS[room.game]({ view: room.view, mySeat: room.mySeat, players: room.players, act, busy })
       )}
+      {room.status === "playing" && <GifReactions code={code} token={token} sentAt={room.gifSentAt} serverNow={room.serverNow} reactions={room.reactions} onSent={q.refetch} />}
 
       {room.status === "finished" && (
         <div className="space-y-8">

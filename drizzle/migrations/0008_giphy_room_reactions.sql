@@ -1,0 +1,7 @@
+ALTER TABLE public.room_players ADD COLUMN gif_sent_at timestamptz, ADD COLUMN gif_search_at timestamptz, ADD COLUMN gif_reaction jsonb;
+CREATE FUNCTION public.claim_giphy_search(_player uuid) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$ BEGIN UPDATE public.room_players SET gif_search_at = clock_timestamp() WHERE id = _player AND (gif_search_at IS NULL OR gif_search_at <= clock_timestamp() - interval '3 seconds'); RETURN FOUND; END $$;
+REVOKE ALL ON FUNCTION public.claim_giphy_search(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_giphy_search(uuid) TO service_role;
+CREATE FUNCTION public.send_room_gif(_player uuid, _reaction jsonb) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$ BEGIN UPDATE public.room_players p SET gif_sent_at = clock_timestamp(), gif_reaction = _reaction WHERE p.id = _player AND (p.gif_sent_at IS NULL OR p.gif_sent_at <= clock_timestamp() - interval '30 seconds') AND EXISTS (SELECT 1 FROM public.rooms r WHERE r.id = p.room_id AND r.status = 'playing'); RETURN FOUND; END $$;
+REVOKE ALL ON FUNCTION public.send_room_gif(uuid,jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.send_room_gif(uuid,jsonb) TO service_role;

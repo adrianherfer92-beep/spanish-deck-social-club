@@ -18,7 +18,7 @@ function Privacidad() {
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-12 text-sm leading-relaxed">
       <h1 className="text-5xl">Privacidad</h1>
-      <p>Guardamos lo mínimo para que puedas jugar y sumar puntos. Sin publicidad, sin rastreadores y sin vender datos.</p>
+      <p>Guardamos lo mínimo para que puedas jugar y sumar puntos. Sin publicidad ni venta de datos. Los GIFs externos son opcionales.</p>
       <h2 className="text-2xl">Qué guardamos</h2>
       <ul className="list-disc space-y-1 pl-5">
         <li><b>Correo y contraseña cifrada</b> (o tu cuenta de Google): solo para iniciar sesión. Nunca se muestran a otros jugadores.</li>
@@ -31,6 +31,9 @@ function Privacidad() {
       <p>Tu avatar se genera en La Timba con DiceBear a partir de un identificador técnico, sin usar tu correo, tu nombre real ni una foto. Si eliges otro avatar, guardamos únicamente su código aleatorio en tu perfil para mostrarlo también en las mesas y el ranking. No enviamos datos ni solicitudes a DiceBear ni guardamos imágenes adicionales.</p>
       <p className="text-xs text-muted-foreground">Avatares <a href="https://bottts.com/" target="_blank" rel="noreferrer" className="underline">Bottts de Pablo Stanley</a>, mediante <a href="https://www.dicebear.com/" target="_blank" rel="noreferrer" className="underline">DiceBear</a>. Diseño libre para uso personal y comercial.</p>
       <h2 className="text-2xl">Para qué y base legal</h2>
+      <h2 className="text-2xl">GIFs de GIPHY</h2>
+      <p>Los GIFs están desactivados inicialmente. Si activas «Mostrar GIFs de GIPHY», tu navegador carga imágenes desde GIPHY, que recibe tu dirección IP y datos técnicos de la conexión. Las búsquedas se envían a GIPHY a través de nuestro servidor, sin tu correo, alias ni clave de sala; no escribas datos personales en ellas. Puedes desactivarlos en cualquier momento. Consulta la <a href="https://support.giphy.com/hc/en-us/articles/360032872931-GIPHY-Privacy-Policy" target="_blank" rel="noreferrer" className="underline">privacidad de GIPHY</a>, incluida la información sobre transferencias internacionales.</p>
+      <p>Guardamos temporalmente el identificador y enlace del último GIF por jugador y la hora de envío para aplicar el límite de uno cada 30 segundos. No guardamos un historial de conversaciones. El GIF desaparece de la mesa tras 15 segundos; su enlace se elimina al actualizar la mesa después de ese plazo o al borrar la mesa. La hora del último envío se conserva mientras exista el jugador en la mesa.</p>
       <p>Para prestar el servicio que pides (ejecución del servicio, art. 6.1.b RGPD) y con tu consentimiento al crear el perfil.</p>
       <h2 className="text-2xl">Cuánto tiempo</h2>
       <p>Mientras tengas cuenta. Las mesas abandonadas se borran a los 2 días. Si borras tu cuenta, tus datos se eliminan y tu historial queda anónimo como «Jugador eliminado».</p>

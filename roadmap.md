@@ -1,4 +1,9 @@
 # DiceBear avatars
+## GIPHY
+- [x] Add secure GIPHY search and room-only reactions with an atomic 30-second sending limit.
+- [x] Add optional GIF display, privacy information and rule tests.
+- [x] Verify two-player sending, limit enforcement and mobile display.
+
 - [x] Add local DiceBear generation and privacy tests.
 - [x] Show automatic avatars in profiles, rankings, lobbies and all four games.
 - [x] Document privacy and attribution.

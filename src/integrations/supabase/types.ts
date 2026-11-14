@@ -90,6 +90,9 @@ export type Database = {
       }
       room_players: {
         Row: {
+          gif_reaction: Json | null
+          gif_search_at: string | null
+          gif_sent_at: string | null
           id: string
           joined_at: string
           name: string
@@ -99,6 +102,9 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          gif_reaction?: Json | null
+          gif_search_at?: string | null
+          gif_sent_at?: string | null
           id?: string
           joined_at?: string
           name: string
@@ -108,6 +114,9 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          gif_reaction?: Json | null
+          gif_search_at?: string | null
+          gif_sent_at?: string | null
           id?: string
           joined_at?: string
           name?: string
@@ -174,7 +183,12 @@ export type Database = {
         Args: { _game: string; _room: string; _rows: Json }
         Returns: undefined
       }
+      claim_giphy_search: { Args: { _player: string }; Returns: boolean }
       cleanup_abandoned_rooms: { Args: never; Returns: undefined }
+      send_room_gif: {
+        Args: { _player: string; _reaction: Json }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

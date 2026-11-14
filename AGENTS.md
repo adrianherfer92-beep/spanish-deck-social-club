@@ -30,6 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- GIPHY reactions use the connector gateway only from room server functions; validate membership and general-audience media, enforce sending atomically in a service-only RPC, and keep reactions in player rows so GIF activity never resets turn timers. External GIF loading is opt-in to avoid unsolicited third-party requests.
 - Generate DiceBear Bottts avatars locally as SVG data URIs; registered players use their owner-editable profiles.avatar_seed choice with an account-ID-derived fallback, and guests use their room-player ID, so profile, ranking and room avatars stay consistent without external tracking or image storage.
 - Card game rules live as pure engines in `src/lib/games/*` (init/move/view/ranking); the server is authoritative and only sends each player their own view, so hidden cards never reach other browsers.
 - Rooms, players and results tables are service-role only; all access goes through server functions in `src/lib/rooms.functions.ts`. Guests are identified by a per-room secret token in localStorage; signed-in users also by their bearer.

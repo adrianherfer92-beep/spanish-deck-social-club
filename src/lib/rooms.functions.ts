@@ -5,6 +5,7 @@ import { ENGINES } from "@/lib/games";
 import { MoveError } from "@/lib/games/types";
 import { pointsForPosition } from "@/lib/games/cards";
 import { resolvedAvatarSeed } from "@/lib/avatars";
+import { gifWaitSeconds, safeGif, GIF_VISIBLE_MS, type Gif } from "@/lib/gifs";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -110,6 +111,9 @@ export const getRoom = createServerFn({ method: "POST" })
     const { sb, room, players, me } = await loadRoom(data.code, data.token);
     const engine = ENGINES[room.game];
     const myIndex = me ? players.findIndex((p) => p.id === me.id) : -1;
+    const now = Date.now();
+    const expired = players.filter(p => p.gif_reaction && p.gif_sent_at && now - Date.parse(p.gif_sent_at) >= GIF_VISIBLE_MS);
+    if (expired.length) await sb.from("room_players").update({ gif_reaction: null }).in("id", expired.map(p => p.id)).lt("gif_sent_at", new Date(now - GIF_VISIBLE_MS).toISOString());
     const profileIds = players.flatMap((p) => p.user_id ? [p.user_id] : []);
     const avatars = new Map<string, string | null>();
     if (profileIds.length) {
@@ -139,6 +143,8 @@ export const getRoom = createServerFn({ method: "POST" })
       turnSeconds: room.turn_seconds as number | null,
       turnStartedAt: room.updated_at as string,
       serverNow: new Date().toISOString(),
+      gifSentAt: me?.gif_sent_at ?? null,
+      reactions: me && room.status === "playing" ? players.flatMap(p => p.gif_reaction && p.gif_sent_at && now - Date.parse(p.gif_sent_at) < GIF_VISIBLE_MS ? [{ playerId: p.id, name: p.name, sentAt: p.gif_sent_at, gif: p.gif_reaction as unknown as Gif }] : []) : [],
     };
   });
 
@@ -329,3 +335,50 @@ export const getOrigin = createServerFn({ method: "GET" }).handler(async () => {
   const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? url.host;
   return `${proto}://${host}`;
 });
+
+const gifRoomSchema = z.object({ code: z.string().max(10), token: z.string().max(100) });
+const GIPHY_GATEWAY = "https://connector-gateway.lovable.dev/udc_giphy/v1/gifs";
+
+async function fetchGiphy(path: string, params: Record<string, string> = {}) {
+  const key = process.env.UDC_GIPHY_API_KEY;
+  const gatewayKey = process.env.LOVABLE_API_KEY;
+  if (!key || !gatewayKey) throw new Error("GIPHY no está conectado");
+  const url = new URL(`${GIPHY_GATEWAY}${path}`);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${gatewayKey}`, "X-Connection-Api-Key": key }, signal: AbortSignal.timeout(10000) });
+  if (!response.ok) {
+    // Do not log provider bodies: they can echo credential-bearing URLs.
+    console.error("GIPHY request failed", response.status);
+    throw new Error(response.status === 429 ? "GIPHY ha alcanzado su límite de consultas; inténtalo más tarde" : `GIPHY no está disponible (${response.status})`);
+  }
+  return response.json() as Promise<{ data: any }>;
+}
+
+export const searchRoomGifs = createServerFn({ method: "POST" })
+  .inputValidator(gifRoomSchema.extend({ query: z.string().trim().max(60) }))
+  .handler(async ({ data }) => {
+    const { sb, room, me } = await loadRoom(data.code, data.token);
+    if (!me || room.status !== "playing") throw new Error("Solo los jugadores de la partida pueden buscar GIFs");
+    const { data: allowed, error } = await sb.rpc("claim_giphy_search", { _player: me.id });
+    if (error) throw new Error("No se pudo comprobar el límite");
+    if (!allowed) throw new Error("Espera 3 segundos antes de otra búsqueda");
+    const response = await fetchGiphy(data.query ? "/search" : "/trending", { limit: "12", rating: "g", lang: "es", ...(data.query ? { q: data.query } : {}) });
+    return (response.data as any[]).flatMap(raw => { const gif = safeGif(raw); return gif ? [gif] : []; });
+  });
+
+export const sendRoomGif = createServerFn({ method: "POST" })
+  .inputValidator(gifRoomSchema.extend({ gifId: z.string().regex(/^[a-zA-Z0-9]{1,100}$/) }))
+  .handler(async ({ data }) => {
+    const { sb, room, me } = await loadRoom(data.code, data.token);
+    if (!me || room.status !== "playing") throw new Error("Solo los jugadores de la partida pueden enviar GIFs");
+    const wait = gifWaitSeconds(me.gif_sent_at);
+    if (wait) throw new Error(`Espera ${wait} segundos para enviar otro GIF`);
+    const raw = await fetchGiphy(`/${data.gifId}`);
+    const gif = safeGif(raw.data);
+    if (!gif) throw new Error("Este GIF no está disponible o no es apto para todos");
+    const { data: sent, error } = await sb.rpc("send_room_gif", { _player: me.id, _reaction: gif });
+    if (error) throw new Error("No se pudo enviar el GIF");
+    if (!sent) throw new Error("Solo puedes enviar un GIF cada 30 segundos");
+    await notify(room.code);
+    return { ok: true };
+  });
