@@ -6,6 +6,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { exportMyData, deleteMyAccount } from "@/lib/account.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { avatarSeed } from "@/lib/avatars";
 
 export const Route = createFileRoute("/perfil")({
   head: () => ({
@@ -75,6 +77,10 @@ function Perfil() {
   return (
     <main className="mx-auto max-w-xl px-4 py-12">
       <h1 className="text-5xl">Mi perfil</h1>
+      <div className="mt-6 flex items-center gap-4">
+        <PlayerAvatar seed={avatarSeed(user.id)} name={prof?.username ?? "Jugador"} className="h-24 w-24" />
+        <span className="break-all font-display text-2xl text-accent">{prof?.username ?? "Jugador"}</span>
+      </div>
       <div className="poster-frame mt-6 rounded-lg bg-card p-6">
         <label className="text-sm text-muted-foreground">Nombre de jugador</label>
         <div className="mt-1 flex gap-2">

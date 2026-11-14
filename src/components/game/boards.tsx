@@ -3,8 +3,10 @@ import { PlayingCard } from "./PlayingCard";
 import { Button } from "@/components/ui/button";
 import { SUIT_NAMES, RANKS, type Suit, cardName } from "@/lib/games/cards";
 import { cn } from "@/lib/utils";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { avatarSeed } from "@/lib/avatars";
 
-export type Player = { id: string; name: string; registered: boolean; host: boolean };
+export type Player = { id: string; name: string; avatarSeed?: string; registered: boolean; host: boolean };
 export type Act = (a: { type: string; card?: string; take?: string[] }) => Promise<void>;
 interface BoardProps {
   view: any;
@@ -21,10 +23,11 @@ export function Seats({ players, turn, counts, mySeat, extra }: { players: Playe
         <div
           key={p.id}
           className={cn(
-            "min-w-28 rounded-md border-2 px-3 py-2 text-center text-sm",
+            "min-w-28 max-w-full rounded-md border-2 px-3 py-2 text-center text-sm",
             turn === i ? "border-accent bg-secondary" : "border-border bg-card",
           )}
         >
+          <PlayerAvatar seed={p.avatarSeed ?? avatarSeed(p.id)} name={p.name} className="mx-auto mb-2" />
           <div className="truncate font-semibold">
             {p.name}
             {i === mySeat && <span className="text-accent"> (tú)</span>}
@@ -174,7 +177,7 @@ export function SieteBoard({ view, mySeat, players, act, busy }: BoardProps) {
         {players.map((p, i) => (
           <div key={p.id} className={cn("rounded-lg border-2 p-3", view.turn === i && !view.over ? "border-accent" : "border-paper/20")}>
             <div className="flex items-center justify-between text-sm text-paper">
-              <span className="font-semibold">{p.name}{i === mySeat && " (tú)"}</span>
+              <span className="flex min-w-0 items-center gap-2 font-semibold"><PlayerAvatar seed={p.avatarSeed ?? avatarSeed(p.id)} name={p.name} className="h-9 w-9" /><span className="break-words">{p.name}{i === mySeat && " (tú)"}</span></span>
               <span>
                 {view.values[i] !== null ? (
                   <b className={view.values[i] > 7.5 ? "text-destructive" : "text-accent"}>{fmt(view.values[i])}{view.values[i] > 7.5 && " · se pasó"}</b>

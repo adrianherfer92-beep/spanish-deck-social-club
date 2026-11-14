@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ENGINES } from "@/lib/games";
 import { MoveError } from "@/lib/games/types";
 import { pointsForPosition } from "@/lib/games/cards";
+import { avatarSeed } from "@/lib/avatars";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -124,7 +125,7 @@ export const getRoom = createServerFn({ method: "POST" })
       joined: !!me,
       minPlayers: engine.minPlayers,
       maxPlayers: engine.maxPlayers,
-      players: players.map((p) => ({ id: p.id, name: p.name, registered: !!p.user_id, host: p.id === room.host_player_id })),
+      players: players.map((p) => ({ id: p.id, name: p.name, avatarSeed: avatarSeed(p.user_id ?? p.id), registered: !!p.user_id, host: p.id === room.host_player_id })),
       view: room.state && room.status !== "lobby" ? (engine.view(room.state, room.status === "finished" ? -1 : myIndex) as any) : null,
       finalView: room.state && room.status === "finished" ? (engine.view(room.state, myIndex) as any) : null,
       results,

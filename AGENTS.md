@@ -30,6 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- Generate DiceBear Bottts avatars locally as SVG data URIs from cosmetic seeds derived from existing IDs; registered players use their account ID and guests their room-player ID, so avatars stay consistent without external tracking or extra stored personal data.
 - Card game rules live as pure engines in `src/lib/games/*` (init/move/view/ranking); the server is authoritative and only sends each player their own view, so hidden cards never reach other browsers.
 - Rooms, players and results tables are service-role only; all access goes through server functions in `src/lib/rooms.functions.ts`. Guests are identified by a per-room secret token in localStorage; signed-in users also by their bearer.
 - Server mutations send a data-free broadcast ("cambio") on topic `sala:CODE`; clients refetch their own view on it, with a slow 10s poll fallback. Versioned updates prevent double moves. Game results and points are applied atomically by the service-only `apply_game_results` DB function.
