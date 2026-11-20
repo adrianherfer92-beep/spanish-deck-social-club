@@ -1,4 +1,6 @@
 import type { CSSProperties } from "react";
+import { Button } from "@/components/ui/button";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { rankOf, suitOf, cardName, type Suit } from "@/lib/games/cards";
 
@@ -107,18 +109,19 @@ export function PlayingCard({
   const rank = card ? rankOf(card) : 1;
   const gaps = { o: 0, c: 1, e: 2, b: 3 }[suit];
   const gapXs = gaps === 1 ? [30] : gaps === 2 ? [24, 36] : gaps === 3 ? [20, 30, 40] : [];
-  const Tag = onClick ? "button" : "div";
+  const Tag = onClick ? Button : "div";
   return (
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
       disabled={onClick ? disabled : undefined}
-      aria-label={hidden ? "Carta boca abajo" : cardName(card!)}
+      aria-label={hidden || !card ? "Carta boca abajo" : cardName(card)}
+      aria-pressed={onClick ? !!selected : undefined}
       style={style}
       className={cn(
-        "relative shrink-0 rounded-md shadow-card select-none",
+        "relative h-auto shrink-0 rounded-md bg-transparent p-0 shadow-card select-none hover:bg-transparent disabled:opacity-100",
         w,
-        onClick && !disabled && "playing-card-lift cursor-pointer",
+        onClick && !disabled && "playing-card-lift cursor-pointer ring-2 ring-accent ring-offset-2 ring-offset-background focus-visible:ring-4",
         selected && "-translate-y-3 ring-2 ring-accent",
         dim && "opacity-45",
         className,
@@ -163,6 +166,7 @@ export function PlayingCard({
           </>
         )}
       </svg>
+      {onClick && !disabled && <span className="absolute -right-1 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accent-foreground" aria-hidden="true"><Check className="h-3 w-3" /></span>}
     </Tag>
   );
 }

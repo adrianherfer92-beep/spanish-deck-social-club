@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Trash2, LogOut } from "lucide-react";
+import { Trash2, LogOut, Copy, Share2, MessageCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -10,13 +10,13 @@ import { useTurnAlert } from "@/hooks/use-turn-alert";
 import { ogImageMeta } from "@/lib/og";
 import { getGuestName, getRoomToken, setGuestName, setRoomToken, clearLastRoom } from "@/lib/session";
 import { gameInfo } from "@/lib/games/info";
-import { pointsForPosition } from "@/lib/games/cards";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { BOARDS, Seats } from "@/components/game/boards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GifReactions } from "@/components/game/GifReactions";
+import { GameRulesDialog } from "@/components/game/GameRulesDialog";
 import { ReportPlayer } from "@/components/game/ReportPlayer";
 
 export const Route = createFileRoute("/sala/$codigo")({
@@ -133,7 +133,8 @@ function Sala() {
       </Centered>
     );
 
-  const info = gameInfo(room.game)!;
+  const info = gameInfo(room.game);
+  if (!info) return <Centered>Juego no disponible</Centered>;
 
   if (room.status === "cancelled") return <Centered><h1 className="text-3xl">El creador ha eliminado la partida</h1><p className="mt-3">Esta mesa ya no está disponible.</p><Button asChild className="mt-5"><Link to="/">Volver al inicio</Link></Button></Centered>;
 
@@ -148,16 +149,14 @@ function Sala() {
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Mesa {room.code}</p>
           <h1 className="text-4xl">{info.name}</h1>
         </div>
-        <Link to="/juegos/$juego" params={{ juego: room.game }} target="_blank" className="text-sm text-accent underline">
-          Ver reglas
-        </Link>
+        <GameRulesDialog game={info} />
         <ReportPlayer code={code} token={token} players={room.players} mySeat={room.mySeat} />
         <div className="flex flex-wrap gap-2">
-          {room.isCreator && <Button variant="destructive" size="sm" disabled={busy} onClick={() => exit(true)}><Trash2 className="mr-2 h-4 w-4" />Eliminar partida</Button>}
-          {(!room.isCreator || room.status !== "playing") && <Button variant="outline" size="sm" disabled={busy} onClick={() => exit(false)}><LogOut className="mr-2 h-4 w-4" />Salir de la partida</Button>}
+          {room.isCreator && <Button variant="destructive" disabled={busy} onClick={() => exit(true)}><Trash2 />Eliminar mesa para todos</Button>}
+          {(!room.isCreator || room.status !== "playing") && <Button variant="outline" disabled={busy} onClick={() => exit(false)}><LogOut />{room.status === "playing" ? "Abandonar partida" : "Salir de la mesa"}</Button>}
         </div>
       </div>
-      {room.status === "playing" && <p className="mb-5 text-sm text-muted-foreground">{room.isCreator ? "Eliminar esta partida en progreso cuesta 1 punto." : "Abandonar antes de terminar cuesta 2 puntos."} Los invitados no pierden puntos. <Link to="/ranking" hash="points-title" className="text-accent underline">Sistema de puntos</Link></p>}
+      {room.status === "playing" && <p className="mb-5 max-w-[70ch] text-sm text-muted-foreground">{room.isCreator ? "Eliminar esta partida en progreso cuesta 1 punto." : "Abandonar antes de terminar cuesta 2 puntos."} Los invitados no pierden puntos. <Link to="/ranking" hash="points-title" className="text-accent underline">Sistema de puntos</Link></p>}
 
       {room.status === "lobby" && (
         <Lobby
@@ -225,7 +224,8 @@ function JoinForm({ code, room, user, username, onJoined }: { code: string; room
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => setName(getGuestName()), []);
-  const info = gameInfo(room.game)!;
+  const info = gameInfo(room.game);
+  if (!info) return <Centered>Juego no disponible</Centered>;
   const join = async () => {
     const n = user ? username ?? "Jugador" : name.trim();
     if (!n) { toast.error("Escribe tu nombre"); return; }
@@ -253,9 +253,9 @@ function JoinForm({ code, room, user, username, onJoined }: { code: string; room
             {user ? (
               <p className="mt-6 text-sm">Entrarás como <b className="text-accent">{username}</b>.</p>
             ) : (
-              <Input className="mt-6" placeholder="Tu nombre" maxLength={20} value={name} onChange={(e) => setName(e.target.value)} />
+              <div className="mt-6 text-left"><label htmlFor="invited-name" className="mb-2 block text-sm font-semibold">Tu nombre en la mesa</label><Input id="invited-name" placeholder="p. ej. Alex" maxLength={20} value={name} onChange={(e) => setName(e.target.value)} /></div>
             )}
-            <Button className="mt-4 w-full" size="lg" onClick={join} disabled={busy}>Sentarme</Button>
+            <Button className="mt-4 w-full" size="lg" onClick={join} disabled={busy || (!user && !name.trim())}>Sentarme a la mesa</Button>
             {!user && (
               <p className="mt-4 text-xs text-muted-foreground">
                 Entras como invitado. <Link to="/auth" className="underline">Crea un perfil</Link> para sumar puntos.
@@ -284,7 +284,8 @@ function useCountdown(room: RoomData | undefined) {
 }
 
 function Lobby({ room, busy, onStart, onKick, onTimer }: { room: RoomData; busy: boolean; onStart: () => void; onKick: (id: string) => void; onTimer: (s: number | null) => void }) {
-  const info = gameInfo(room.game)!;
+  const info = gameInfo(room.game);
+  if (!info) return <Centered>Juego no disponible</Centered>;
   const link = typeof window !== "undefined" ? `${window.location.origin}/sala/${room.code}` : "";
   const text = `¡Vente a jugar al ${info.name} en La Timba! Código de mesa: ${room.code}`;
   const share = async () => {
@@ -300,12 +301,14 @@ function Lobby({ room, busy, onStart, onKick, onTimer }: { room: RoomData; busy:
   const enough = room.players.length >= room.minPlayers;
   return (
     <div className="grid gap-6 md:grid-cols-[1fr_1fr]">
-      <div className="poster-frame rounded-lg bg-card p-6 text-center">
-        <p className="text-sm uppercase tracking-widest text-muted-foreground">Código de la mesa</p>
-        <p className="mt-2 font-display text-6xl tracking-[0.2em] text-accent">{room.code}</p>
+      <div className="rounded-lg border border-border bg-card p-6 text-center">
+        <h2 className="text-2xl">Invita a tus amigos</h2>
+        <p className="mx-auto mt-3 max-w-[70ch] text-sm text-muted-foreground">Comparte este código con tus amigos para que se unan a la partida. No necesitan una cuenta.</p>
+        <p className="mt-5 text-sm text-muted-foreground">Código de la mesa</p>
+        <p className="mt-2 font-sans text-4xl font-bold text-accent sm:text-5xl">{room.code}</p>
+        <Button variant="outline" className="mt-3" onClick={async () => { await navigator.clipboard.writeText(room.code); toast.success("Código copiado"); }}><Copy />Copiar código</Button>
         <div className="mt-6 grid grid-cols-2 gap-2">
           <Button
-            variant="secondary"
             onClick={() => {
               const msg = encodeURIComponent(`${text}\n${link}`);
               const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -313,9 +316,9 @@ function Lobby({ room, busy, onStart, onKick, onTimer }: { room: RoomData; busy:
               else window.open(`https://web.whatsapp.com/send?text=${msg}`, "_blank", "noopener");
             }}
           >
-            WhatsApp
+            <MessageCircle />WhatsApp
           </Button>
-          <Button asChild variant="secondary">
+          <Button asChild variant="outline">
             <a href={`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">Telegram</a>
           </Button>
           <Button
@@ -327,7 +330,7 @@ function Lobby({ room, busy, onStart, onKick, onTimer }: { room: RoomData; busy:
           >
             Copiar enlace
           </Button>
-          <Button variant="secondary" onClick={share}>Más opciones</Button>
+          <Button variant="outline" onClick={share}><Share2 />Compartir</Button>
         </div>
         <div className="mt-6 flex flex-col items-center gap-2">
           <div className="rounded-md bg-paper p-3">
@@ -336,7 +339,7 @@ function Lobby({ room, busy, onStart, onKick, onTimer }: { room: RoomData; busy:
           <p className="text-xs text-muted-foreground">Escanéalo con el móvil para entrar</p>
         </div>
       </div>
-      <div className="poster-frame rounded-lg bg-card p-6">
+      <div className="rounded-lg border border-border bg-card p-6">
         <h2 className="text-2xl">En la mesa ({room.players.length}/{room.maxPlayers})</h2>
         <div className="mt-4">
           <Seats players={room.players} mySeat={room.mySeat} extra={(i) => (
@@ -345,16 +348,12 @@ function Lobby({ room, busy, onStart, onKick, onTimer }: { room: RoomData; busy:
                 {room.players[i].host ? "anfitrión" : room.players[i].registered ? "con perfil" : "invitado"}
               </div>
               {room.isHost && i !== room.mySeat && (
-                <button type="button" disabled={busy} onClick={() => onKick(room.players[i].id)} className="mt-1 text-xs text-destructive underline">
-                  Expulsar
-                </button>
+                <Button variant="ghost" size="sm" disabled={busy} onClick={() => onKick(room.players[i].id)} className="mt-1 text-destructive">Expulsar</Button>
               )}
             </>
           )} />
         </div>
-        <p className="mt-5 text-sm text-muted-foreground">
-          Mínimo {room.minPlayers} jugadores. Puntos: 1º {pointsForPosition(1)}, 2º {pointsForPosition(2)}, 3º {pointsForPosition(3)}, resto {pointsForPosition(4)}.
-        </p>
+        <p className="mt-5 max-w-[70ch] text-sm text-muted-foreground">{enough ? "Ya podéis empezar cuando estéis todos." : `Faltan ${room.minPlayers - room.players.length} jugadores para empezar.`} {info.complexity} · {info.duration}.</p>
         <div className="mt-4 flex items-center justify-between gap-3 rounded border border-border p-3 text-sm">
           <span>Tiempo por turno</span>
           {room.isHost ? (
@@ -372,6 +371,10 @@ function Lobby({ room, busy, onStart, onKick, onTimer }: { room: RoomData; busy:
           ) : (
             <b className="text-accent">{room.turnSeconds ? `${room.turnSeconds} s` : "Sin límite"}</b>
           )}
+        </div>
+        <div className="mt-5 border-t border-border pt-4">
+          <p className="mb-3 text-sm text-muted-foreground">Mientras se llena la mesa, repasa las reglas de {info.name}.</p>
+          <GameRulesDialog game={info} />
         </div>
         {room.isHost ? (
           <Button size="lg" className="mt-4 w-full" onClick={onStart} disabled={busy || !enough}>

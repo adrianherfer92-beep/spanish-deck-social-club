@@ -25,12 +25,12 @@ function Juegos() {
       <p className="mt-2 text-muted-foreground">Todos se juegan solo con las cartas, sin hablar.</p>
       <div className="mt-8 grid gap-6 sm:grid-cols-2">
         {GAMES.map((g) => (
-          <Link key={g.id} to="/juegos/$juego" params={{ juego: g.id }} className="poster-frame flex gap-5 rounded-lg bg-card p-5 transition-transform hover:-translate-y-1">
+          <Link key={g.id} to="/juegos/$juego" params={{ juego: g.id }} className="flex gap-5 border border-border rounded-lg bg-card p-5 transition-transform hover:-translate-y-1">
             <PlayingCard card={COVER[g.id]} size="lg" />
             <div>
               <h2 className="text-3xl">{g.name}</h2>
               <p className="text-muted-foreground">{g.tagline}</p>
-              <p className="mt-3 text-xs uppercase tracking-wider text-accent">{g.players} · {g.duration}</p>
+              <p className="mt-3 text-xs text-muted-foreground">{g.players} · {g.duration} · {g.complexity}</p>
               <p className="mt-3 text-sm">{g.objective}</p>
             </div>
           </Link>

@@ -149,7 +149,7 @@
 }
 
 @layer base {
-  h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.01em; }
+  h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0; }
   body { font-family: var(--font-sans); background-image: var(--gradient-wood); min-height: 100vh; }
 }
 
@@ -176,3 +176,8 @@
   100% { opacity: 1; transform: none; }
 }
 @utility animate-fly { animation: card-fly 420ms cubic-bezier(.2,.8,.3,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-deal, .animate-fly { animation: none; }
+  .playing-card-lift { transition: none; }
+}

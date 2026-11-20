@@ -32,11 +32,13 @@ function Reglas() {
       <p className="mt-2 text-xl text-muted-foreground">{g.tagline}</p>
       <div className="mt-4 flex flex-wrap gap-2 text-xs uppercase tracking-wider">
         <span className="rounded border border-accent px-2 py-1 text-accent">{g.players}</span>
-        <span className="rounded border border-accent px-2 py-1 text-accent">{g.duration}</span>
+        <span className="rounded border border-border px-2 py-1">{g.duration}</span>
+        <span className="rounded border border-border px-2 py-1">{g.complexity}</span>
       </div>
-      <section className="poster-frame mt-8 rounded-lg bg-card p-6">
+      <section className="mt-8 max-w-[70ch] border-t border-border pt-6">
         <h2 className="text-2xl">Objetivo</h2>
         <p className="mt-2">{g.objective}</p>
+        <p className="mt-3 text-sm text-muted-foreground">{g.complexity}: {g.complexityDetail}</p>
         <h2 className="mt-6 text-2xl">Cómo se juega</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5">
           {g.rules.map((r) => <li key={r}>{r}</li>)}

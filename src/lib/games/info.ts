@@ -6,6 +6,8 @@ export interface GameInfo {
   minPlayers: number;
   maxPlayers: number;
   duration: string;
+  complexity: string;
+  complexityDetail: string;
   objective: string;
   rules: string[];
   tips: string[];
@@ -20,6 +22,8 @@ export const GAMES: GameInfo[] = [
     minPlayers: 2,
     maxPlayers: 8,
     duration: "10-15 min",
+    complexity: "Fácil",
+    complexityDetail: "Ordenar cartas y elegir qué palo abrir.",
     objective: "Ser el primero en quedarse sin cartas.",
     rules: [
       "Se reparten las 40 cartas entre todos los jugadores.",
@@ -39,6 +43,8 @@ export const GAMES: GameInfo[] = [
     minPlayers: 2,
     maxPlayers: 8,
     duration: "10-20 min",
+    complexity: "Fácil",
+    complexityDetail: "Seguir el palo y decidir con qué carta salir.",
     objective: "Deshacerte de todas tus cartas. El último en quedarse con cartas es el burro.",
     rules: [
       "Cada jugador recibe 6 cartas (5 con 5-6 jugadores, 4 con 7-8). El resto forma el mazo.",
@@ -58,6 +64,8 @@ export const GAMES: GameInfo[] = [
     minPlayers: 2,
     maxPlayers: 8,
     duration: "5 min",
+    complexity: "Muy fácil",
+    complexityDetail: "Solo decides si pedir carta o plantarte.",
     objective: "Sumar 7 y medio o lo más cerca posible sin pasarte.",
     rules: [
       "Las cartas del 1 al 7 valen su número. Sota, Caballo y Rey valen medio punto.",
@@ -76,6 +84,8 @@ export const GAMES: GameInfo[] = [
     minPlayers: 2,
     maxPlayers: 4,
     duration: "15-20 min",
+    complexity: "Intermedio",
+    complexityDetail: "Sumar quince y planear qué cartas recoger.",
     objective: "Conseguir más puntos que nadie al acabar el mazo.",
     rules: [
       "Valores: del 1 al 7 su número, Sota 8, Caballo 9 y Rey 10.",

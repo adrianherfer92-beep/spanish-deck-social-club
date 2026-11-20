@@ -34,7 +34,7 @@ export function Seats({ players, turn, counts, mySeat, extra }: { players: Playe
           </div>
           {counts && <div className="text-xs text-muted-foreground">{counts[i]} cartas</div>}
           {extra?.(i)}
-          {turn === i && <div className="text-[10px] uppercase tracking-widest text-accent">su turno</div>}
+          {turn === i && <div className="mt-1 text-xs font-bold text-accent">{i === mySeat ? "Tu turno" : "Jugando"}</div>}
         </div>
       ))}
     </div>
@@ -46,7 +46,7 @@ function Hand({ cards, playable, onPlay, selected, busy }: { cards: string[]; pl
   return (
     <div className="flex flex-wrap justify-center gap-1.5 pt-4">
       {cards.map((c, i) => {
-        const can = !playable || playable.includes(c);
+        const can = !!onPlay && (!playable || playable.includes(c));
         return (
           <PlayingCard
             key={c}
@@ -55,7 +55,7 @@ function Hand({ cards, playable, onPlay, selected, busy }: { cards: string[]; pl
             className="animate-deal"
             style={{ animationDelay: `${i * 30}ms` }}
             selected={selected === c}
-            dim={!!playable && !can}
+            dim={!!onPlay && !can}
             disabled={busy || !can}
             onClick={onPlay ? () => onPlay(c) : undefined}
           />
@@ -67,8 +67,8 @@ function Hand({ cards, playable, onPlay, selected, busy }: { cards: string[]; pl
 
 function TurnBanner({ mine, name }: { mine: boolean; name?: string }) {
   return (
-    <p className={cn("text-center font-display text-2xl", mine ? "text-accent" : "text-muted-foreground")}>
-      {mine ? "¡Te toca!" : `Turno de ${name ?? "…"}`}
+    <p role="status" className={cn("rounded-md border px-4 py-3 text-center font-display text-2xl", mine ? "border-accent bg-secondary text-accent" : "border-border text-muted-foreground")}>
+      {mine ? "¡Es tu turno!" : `Turno de ${name ?? "…"}`}
     </p>
   );
 }
@@ -78,6 +78,7 @@ export function CinquilloBoard({ view, mySeat, players, act, busy }: BoardProps)
   const mine = view.turn === mySeat && view.winner === null;
   return (
     <div className="space-y-6">
+      {!view.over && (view.winner === null || view.winner === undefined) && <TurnBanner mine={mine} name={players[view.turn]?.name} />}
       <Seats players={players} turn={view.winner === null ? view.turn : null} counts={view.counts} mySeat={mySeat} />
       <div className="felt-table space-y-3 rounded-xl p-4">
         {(view.suits as Suit[]).map((s) => {
@@ -99,7 +100,7 @@ export function CinquilloBoard({ view, mySeat, players, act, busy }: BoardProps)
           );
         })}
       </div>
-      {!view.over && (view.winner === null || view.winner === undefined) && <TurnBanner mine={mine} name={players[view.turn]?.name} />}
+      {mine && view.playable.length > 0 && <p className="text-center text-sm">Juega una de las cartas marcadas en dorado.</p>}
       <Hand cards={view.hand} playable={mine ? view.playable : []} busy={busy} onPlay={mine ? (c) => act({ type: "play", card: c }) : undefined} />
       {mine && view.playable.length === 0 && (
         <div className="text-center">
@@ -116,6 +117,7 @@ export function BurroBoard({ view, mySeat, players, act, busy }: BoardProps) {
   const playable = mine ? (view.ledSuit ? view.hand.filter((c: string) => c[0] === view.ledSuit) : view.hand) : [];
   return (
     <div className="space-y-6">
+      {!view.over && (view.winner === null || view.winner === undefined) && <TurnBanner mine={mine} name={players[view.turn]?.name} />}
       <Seats
         players={players}
         turn={view.over ? null : view.turn}
@@ -152,7 +154,7 @@ export function BurroBoard({ view, mySeat, players, act, busy }: BoardProps) {
         </div>
         {view.ledSuit && <p className="text-sm text-paper">Se juega a <b>{SUIT_NAMES[view.ledSuit as Suit]}</b></p>}
       </div>
-      {!view.over && (view.winner === null || view.winner === undefined) && <TurnBanner mine={mine} name={players[view.turn]?.name} />}
+      {mine && playable.length > 0 && <p className="text-center text-sm">Juega una de las cartas marcadas en dorado.</p>}
       <Hand cards={view.hand} playable={playable} busy={busy} onPlay={mine ? (c) => act({ type: "play", card: c }) : undefined} />
       {mine && !view.canFollow && (
         <div className="text-center">
@@ -173,6 +175,7 @@ export function SieteBoard({ view, mySeat, players, act, busy }: BoardProps) {
   const myValue = view.values[mySeat];
   return (
     <div className="space-y-6">
+      {!view.over && (view.winner === null || view.winner === undefined) && <TurnBanner mine={mine} name={players[view.turn]?.name} />}
       <div className="felt-table grid gap-4 rounded-xl p-5 sm:grid-cols-2">
         {players.map((p, i) => (
           <div key={p.id} className={cn("rounded-lg border-2 p-3", view.turn === i && !view.over ? "border-accent" : "border-paper/20")}>
@@ -195,7 +198,6 @@ export function SieteBoard({ view, mySeat, players, act, busy }: BoardProps) {
       {mySeat >= 0 && !view.over && (
         <p className="text-center">Llevas <b className="font-display text-3xl text-accent">{fmt(myValue)}</b></p>
       )}
-      {!view.over && (view.winner === null || view.winner === undefined) && <TurnBanner mine={mine} name={players[view.turn]?.name} />}
       {mine && (
         <div className="flex justify-center gap-3">
           <Button onClick={() => act({ type: "draw" })} disabled={busy}>Pedir carta</Button>
@@ -225,6 +227,7 @@ export function EscobaBoard({ view, mySeat, players, act, busy }: BoardProps) {
   };
   return (
     <div className="space-y-6">
+      {!view.over && (view.winner === null || view.winner === undefined) && <TurnBanner mine={mine} name={players[view.turn]?.name} />}
       <Seats
         players={players}
         turn={view.over ? null : view.turn}
@@ -262,7 +265,6 @@ export function EscobaBoard({ view, mySeat, players, act, busy }: BoardProps) {
           ))}
         </div>
       </div>
-      {!view.over && (view.winner === null || view.winner === undefined) && <TurnBanner mine={mine} name={players[view.turn]?.name} />}
       {mine && (
         <p className="text-center text-sm text-muted-foreground">
           Elige una carta de tu mano y las de la mesa que quieras sumar. Suma actual: <b className={sum === 15 ? "text-accent" : ""}>{sum}</b> / 15

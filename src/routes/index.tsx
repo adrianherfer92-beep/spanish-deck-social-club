@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlayingCard } from "@/components/game/PlayingCard";
 import { cn } from "@/lib/utils";
-import { PointsRules } from "@/components/PointsRules";
+import { GameRulesDialog } from "@/components/game/GameRulesDialog";
+import { Check, Plus, LogIn, ArrowRight } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getStripeEnvironment } from "@/lib/stripe";
 
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { user, username } = useAuth();
+  const { user, username, loading } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [game, setGame] = useState(GAMES[0].id);
@@ -54,6 +55,12 @@ function Index() {
       .catch(() => clearLastRoom());
   }, []);
   const playerName = user ? username ?? "Jugador" : name.trim();
+  const selectedGame = GAMES.find(g => g.id === game) ?? GAMES[0];
+  const validCode = /^[A-Z0-9]{4,6}$/.test(code.trim());
+  const focusSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
+    document.getElementById(id === "join-table" ? "table-code" : "create-game")?.focus({ preventScroll: true });
+  };
 
   const ensureName = () => {
     if (!playerName) {
@@ -82,7 +89,7 @@ function Index() {
 
   const onJoin = async () => {
     if (!ensureName()) return;
-    if (code.trim().length < 4) { toast.error("Introduce el código de la sala"); return; }
+    if (!validCode) { toast.error("Introduce el código de la sala"); return; }
     setBusy("join");
     try {
       const r = await joinRoom({ data: { code: code.trim(), name: playerName } });
@@ -97,110 +104,79 @@ function Index() {
 
   return (
     <main>
-      <section className="relative overflow-hidden border-b-2 border-accent/60">
-        <img src={hero} alt="Mesa de taberna con naipes españoles" width={1600} height={912} className="absolute inset-0 h-full w-full object-cover opacity-45" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/60 to-background" />
-        <div className="relative mx-auto max-w-6xl px-4 py-20 sm:py-28">
-          <p className="mb-3 text-sm uppercase tracking-[0.35em] text-accent">Baraja española · en línea</p>
-          <h1 className="max-w-2xl text-5xl leading-[1.05] sm:text-7xl">Saca la baraja, que esta noche hay timba.</h1>
-          <p className="mt-5 max-w-xl text-lg text-muted-foreground">
-            Crea una mesa, pasa el código a tus amigos por WhatsApp o Telegram y jugad sin hablar: solo con las cartas.
-          </p>
-          <div className="mt-8 flex gap-2">
-            {["o1", "c12", "e7", "b11"].map((c, i) => (
-              <PlayingCard key={c} card={c} size="md" className="animate-deal" style={{ animationDelay: `${i * 90}ms`, rotate: `${(i - 1.5) * 6}deg` }} />
-            ))}
+      <section className="relative overflow-hidden border-b border-border">
+        <img src={hero} alt="Mesa de taberna con naipes españoles" width={1600} height={912} className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-background/70" />
+        <div className="relative mx-auto max-w-6xl px-4 py-10 sm:py-12">
+          <p className="mb-3 text-sm text-accent">Baraja española · con tus amigos</p>
+          <h1 className="text-5xl leading-tight sm:text-6xl">La Timba</h1>
+          <p className="mt-3 max-w-[55ch] text-xl">Saca la baraja, que esta noche hay timba.</p>
+          <p className="mt-3 max-w-[65ch] text-muted-foreground">Necesitas una cuenta gratuita para crear mesas; para unirte, no.</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button size="lg" disabled={loading} onClick={() => user ? focusSection("create-table") : navigate({ to: "/auth" })}><Plus />Crear mesa</Button>
+            <Button variant="outline" size="lg" onClick={() => focusSection("join-table")}><LogIn />Tengo un código</Button>
+          </div>
+          <div aria-hidden="true" className="pointer-events-none absolute bottom-5 right-8 hidden gap-1 opacity-60 lg:flex">
+            {["o1", "c12", "e7", "b11"].map(c => <PlayingCard key={c} card={c} size="sm" />)}
           </div>
         </div>
       </section>
 
       {resume && (
-        <div className="mx-auto mt-8 max-w-6xl px-4">
-          <div className="poster-frame flex flex-wrap items-center justify-between gap-3 rounded-lg bg-secondary p-4">
-            <p>
-              Tienes una mesa de <b className="text-accent">{resume.game}</b> en curso (código {resume.code}).
-            </p>
+        <div className="mx-auto mt-6 max-w-6xl px-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-secondary p-4">
+            <p className="max-w-[70ch]">Tienes una mesa de <b>{resume.game}</b> en curso (código {resume.code}).</p>
             <div className="flex gap-2">
               <Button variant="ghost" size="sm" onClick={() => { clearLastRoom(); setResume(null); }}>Olvidar</Button>
-              <Button asChild size="sm">
-                <Link to="/sala/$codigo" params={{ codigo: resume.code }}>Volver a la mesa</Link>
-              </Button>
+              <Button asChild size="sm"><Link to="/sala/$codigo" params={{ codigo: resume.code }}>Volver a la mesa</Link></Button>
             </div>
           </div>
         </div>
       )}
-      <section className="mx-auto grid max-w-6xl gap-6 px-4 py-12 lg:grid-cols-[1.5fr_1fr]">
-        <div className="poster-frame rounded-lg bg-card p-6">
+      <section className="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:grid-cols-[1.5fr_1fr]">
+        <div id="create-table" className="scroll-mt-6 border-b border-border pb-8 md:border-b-0 md:border-r md:pb-0 md:pr-8">
           <h2 className="text-3xl">Monta una mesa</h2>
-          <p className="mt-1 text-muted-foreground">Crear partidas es gratis por ahora. Unirse a una mesa también, incluso como invitado.</p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {GAMES.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                onClick={() => setGame(g.id)}
-                className={cn(
-                  "rounded-md border-2 p-4 text-left transition-colors",
-                  game === g.id ? "border-accent bg-secondary" : "border-border hover:border-accent/60",
-                )}
-              >
-                <div className="font-display text-xl">{g.name}</div>
-                <div className="text-sm text-muted-foreground">{g.tagline}</div>
-                <div className="mt-2 text-xs uppercase tracking-wider text-accent">
-                  {g.players} · {g.duration}
-                </div>
-              </button>
-            ))}
-          </div>
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-            {user ? (
-              <p className="flex-1 text-sm text-muted-foreground">
-                Juegas como <span className="font-semibold text-accent">{username}</span> y sumarás puntos.
-              </p>
-            ) : (
-              <Input placeholder="Tu nombre (invitado)" value={name} maxLength={20} onChange={(e) => setName(e.target.value)} className="flex-1" />
-            )}
-            <Button size="lg" onClick={onCreate} disabled={busy !== null}>
-              {busy === "create" ? "Barajando…" : !user ? "Entrar para crear" : "Crear partida"}
-            </Button>
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            <Link to="/juegos/$juego" params={{ juego: game }} className="underline hover:text-accent">
-              ¿Cómo se juega a {GAMES.find((g) => g.id === game)?.name}?
-            </Link>
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-6">
-          <div className="poster-frame rounded-lg bg-card p-6">
-            <h2 className="text-3xl">Tengo un código</h2>
-            <p className="mt-1 text-muted-foreground">Te lo ha pasado un amigo.</p>
-            <Input
-              placeholder="ABC123"
-              value={code}
-              maxLength={6}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              className="mt-4 text-center font-display text-2xl tracking-[0.4em]"
-            />
-            {!user && (
-              <Input placeholder="Tu nombre (invitado)" value={name} maxLength={20} onChange={(e) => setName(e.target.value)} className="mt-3" />
-            )}
-            <Button variant="secondary" className="mt-3 w-full" onClick={onJoin} disabled={busy !== null}>
-              {busy === "join" ? "Entrando…" : "Sentarme a la mesa"}
-            </Button>
-          </div>
-          {!user && (
-            <div className="rounded-lg border-2 border-dashed border-accent/50 p-5 text-sm">
-              <p className="font-semibold text-accent">¿Quieres sumar puntos?</p>
-              <p className="mt-1 text-muted-foreground">Crea tu perfil y compite en el ranking con tus amigos. Los invitados juegan, pero no puntúan.</p>
-              <Button variant="link" className="px-0 text-accent" asChild>
-                <Link to="/auth">Crear cuenta →</Link>
-              </Button>
+          {loading ? <p className="mt-4 text-muted-foreground">Comprobando tu cuenta…</p> : user ? (
+            <>
+              <p className="mt-2 max-w-[70ch] text-muted-foreground">Elige el juego. Crear partidas es gratis por ahora.</p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2" role="group" aria-label="Elige el juego">
+                {GAMES.map(g => (
+                  <div key={g.id} className={cn("flex flex-col rounded-lg border-2 transition-colors", game === g.id ? "border-accent bg-secondary" : "border-border bg-card")}>
+                    <Button variant="ghost" aria-pressed={game === g.id} aria-label={`Elegir ${g.name}`} onClick={() => setGame(g.id)} className="h-auto min-h-32 w-full justify-start whitespace-normal rounded-b-none p-4 text-left hover:bg-secondary hover:text-foreground">
+                      <span className="w-full">
+                        <span className="flex items-center justify-between gap-2"><span className="font-display text-xl">{g.name}</span>{game === g.id && <Check className="text-accent" aria-label="Seleccionado" />}</span>
+                        <span className="mt-1 block text-sm font-normal text-muted-foreground">{g.tagline}</span>
+                        <span className="mt-3 block text-xs font-normal text-muted-foreground">{g.players} · {g.duration}</span>
+                      </span>
+                    </Button>
+                    <div className="mt-auto flex items-center justify-between gap-2 px-3 pb-2"><span className="text-xs font-semibold">{g.complexity}</span><GameRulesDialog game={g} compact /></div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">{selectedGame.complexityDetail}</p>
+              <div className="mt-5"><p className="text-sm text-muted-foreground">Tu nombre en la mesa</p><p className="mt-1 font-semibold">{playerName}</p></div>
+              <Button id="create-game" size="lg" className="mt-5 h-auto min-h-11 w-full whitespace-normal py-3" onClick={onCreate} disabled={busy !== null}><Plus />{busy === "create" ? "Barajando…" : `Crear partida de ${selectedGame.name}`}</Button>
+            </>
+          ) : (
+            <div className="mt-5 space-y-4">
+              <p className="max-w-[70ch] text-muted-foreground">Necesitas una cuenta gratuita para crear mesas; para unirte, no.</p>
+              <Button asChild size="lg"><Link to="/auth">Entrar o crear cuenta<ArrowRight /></Link></Button>
+              <p><Link to="/juegos" className="text-sm underline underline-offset-4">Ver juegos y reglas</Link></p>
             </div>
           )}
         </div>
+        <div id="join-table" className="scroll-mt-6">
+          <h2 className="text-3xl">Tengo un código</h2>
+          <p className="mt-2 max-w-[70ch] text-muted-foreground">Si te han invitado, tu sitio está aquí.</p>
+          <form className="mt-5 space-y-4" onSubmit={e => { e.preventDefault(); if (validCode && playerName) void onJoin(); }}>
+            <div><label htmlFor="table-code" className="mb-2 block text-sm font-semibold">Código de la mesa</label><Input id="table-code" placeholder="p. ej. ABC123" autoComplete="off" autoCapitalize="characters" spellCheck={false} value={code} maxLength={6} onChange={e => setCode(e.target.value.toUpperCase())} className="h-12 font-sans text-lg" /></div>
+            {!user && !loading && <div><label htmlFor="guest-name" className="mb-2 block text-sm font-semibold">Tu nombre en la mesa</label><Input id="guest-name" placeholder="p. ej. Alex" autoComplete="nickname" value={name} maxLength={20} onChange={e => setName(e.target.value)} /><p className="mt-2 text-xs text-muted-foreground">Lo recordaremos para tu próxima mesa. Juegas como invitado, sin puntos.</p></div>}
+            {user && <div><p className="text-sm text-muted-foreground">Tu nombre en la mesa</p><p className="mt-1 font-semibold">{playerName}</p></div>}
+            <Button type="submit" variant={validCode ? "default" : "secondary"} className="h-11 w-full" disabled={busy !== null || loading || !validCode || !playerName}><LogIn />{busy === "join" ? "Entrando…" : "Sentarme a la mesa"}</Button>
+          </form>
+          {!user && <p className="mt-6 max-w-[70ch] border-t border-border pt-4 text-sm text-muted-foreground">¿Quieres sumar puntos? <Link to="/auth" className="text-foreground underline underline-offset-4">Crea tu cuenta gratuita.</Link></p>}
+        </div>
       </section>
-      <div className="mx-auto max-w-6xl px-4"><PointsRules /></div>
     </main>
   );
 }

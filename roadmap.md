@@ -1,4 +1,8 @@
 # DiceBear avatars
+## Claridad UX/UI
+- [x] Ajustar portada, acceso de invitados, selección, dificultad y campos de entrada.
+- [x] Aclarar compartir, reglas en espera, salida y cartas jugables durante los turnos.
+- [x] Compactar puntos en ranking y verificar los recorridos en escritorio y móvil.
 ## Pagos por partida (EN PAUSA)
 - [x] Crear producto de 1 € y pago integrado, sin suscripciones.
 - [x] Aplicar una creación gratuita diaria por cuenta y excepción del administrador de forma atómica.
