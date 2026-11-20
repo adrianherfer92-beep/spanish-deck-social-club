@@ -30,6 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- Keep room chat in a viewport-bounded sticky sidebar on desktop and stacked on narrow screens, so its composer stays accessible while only the message list scrolls.
 - Keep game difficulty in the shared game catalog and use the reusable in-place rules dialog in selectors and rooms, so players can read rules without losing their current table or selection.
 - Account-linked room creation uses a service-only atomic RPC with a per-profile lock and persistent daily usage; paid orders are environment-scoped, signature-verified and consumed once. Completed rooms cannot restart or reset to bypass metering; new matches require new rooms. Stripe access uses the shared gateway client and embedded checkout only.
 - Room cancellation and departures use the service-only exit_room RPC to lock room version, verify membership and creator ownership, and apply penalties atomically; retain departed seat indexes and auto-play those seats so all game engines continue safely. Cancelled rooms retain result history but expose no state; penalty records cascade on account deletion and are included in data exports.

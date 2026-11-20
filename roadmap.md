@@ -1,5 +1,6 @@
 # DiceBear avatars
 ## Chat de mesa
+- [x] Colocar el chat en un lateral de escritorio y comprobar que siempre se puede escribir sin bajar por la partida.
 - [x] Añadir mensajes privados para miembros de la mesa con límites y limpieza automática.
 - [x] Integrar los GIFs en la conversación y retirar las reacciones de la partida.
 - [x] Incluir mensajes en privacidad, exportación y eliminación de cuenta; verificar con dos jugadores.

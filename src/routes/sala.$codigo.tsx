@@ -147,7 +147,9 @@ function Sala() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    <main className="mx-auto max-w-7xl px-4 py-8">
+      <div className="grid items-start gap-y-0 min-[960px]:gap-6 min-[960px]:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="min-w-0">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Mesa {room.code}</p>
@@ -213,7 +215,11 @@ function Sala() {
           )}
         </div>
       )}
-      <RoomChat code={code} token={token} players={room.players} />
+      </div>
+      <aside aria-label="Chat de la mesa" className="min-w-0 min-[960px]:sticky min-[960px]:top-4">
+        <RoomChat code={code} token={token} players={room.players} />
+      </aside>
+      </div>
     </main>
   );
 }
