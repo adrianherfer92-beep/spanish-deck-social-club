@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Trash2, LogOut, Copy, Share2, MessageCircle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { getRoom, joinRoom, startGame, makeMove, backToLobby, kickPlayer, setTurnTimer, skipTurn, getOrigin, deleteRoom, leaveRoom } from "@/lib/rooms.functions";
@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BOARDS, Seats } from "@/components/game/boards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GifReactions } from "@/components/game/GifReactions";
+import { RoomChat } from "@/components/game/RoomChat";
 import { GameRulesDialog } from "@/components/game/GameRulesDialog";
 import { ReportPlayer } from "@/components/game/ReportPlayer";
 
@@ -45,6 +45,7 @@ function Sala() {
   const [token, setToken] = useState(() => getRoomToken(code));
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const exit = async (deleting: boolean) => {
     if (!room) return;
@@ -84,11 +85,14 @@ function Sala() {
       .on("broadcast", { event: "cambio" }, () => {
         refetch();
       })
+      .on("broadcast", { event: "chat" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["room-chat", code, token] });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [code, refetch]);
+  }, [code, token, refetch, queryClient]);
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -176,7 +180,6 @@ function Sala() {
       {room.status === "playing" && room.view && (
         BOARDS[room.game]({ view: room.view, mySeat: room.mySeat, players: room.players, act, busy })
       )}
-      {room.status === "playing" && <GifReactions code={code} token={token} sentAt={room.gifSentAt} serverNow={room.serverNow} reactions={room.reactions} onSent={q.refetch} />}
 
       {room.status === "finished" && (
         <div className="space-y-8">
@@ -210,6 +213,7 @@ function Sala() {
           )}
         </div>
       )}
+      <RoomChat code={code} token={token} players={room.players} />
     </main>
   );
 }

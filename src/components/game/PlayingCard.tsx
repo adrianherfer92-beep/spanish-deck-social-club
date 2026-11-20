@@ -119,7 +119,7 @@ export function PlayingCard({
       aria-pressed={onClick ? !!selected : undefined}
       style={style}
       className={cn(
-        "relative h-auto shrink-0 rounded-md bg-transparent p-0 shadow-card select-none hover:bg-transparent disabled:opacity-100",
+        "relative h-auto shrink-0 rounded-md bg-transparent p-0 shadow-card select-none hover:bg-transparent disabled:opacity-100 [&>svg]:h-auto! [&>svg]:w-full!",
         w,
         onClick && !disabled && "playing-card-lift cursor-pointer ring-2 ring-accent ring-offset-2 ring-offset-background focus-visible:ring-4",
         selected && "-translate-y-3 ring-2 ring-accent",

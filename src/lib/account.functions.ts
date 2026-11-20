@@ -7,7 +7,7 @@ export const exportMyData = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const uid = context.userId;
-    const [{ data: profile }, { data: results }, { data: u }, { data: reports }, { data: suspensions }, { data: penalties }, { data: purchases }, { data: usage }] = await Promise.all([
+    const [{ data: profile }, { data: results }, { data: u }, { data: reports }, { data: suspensions }, { data: penalties }, { data: purchases }, { data: usage }, { data: messages, error: chatError }] = await Promise.all([
       supabaseAdmin.from("profiles").select("username, points, games_played, wins, created_at, privacy_accepted_at, avatar_seed").eq("id", uid).maybeSingle(),
       supabaseAdmin.from("game_results").select("game, position, points, created_at").eq("user_id", uid),
       supabaseAdmin.auth.admin.getUserById(uid),
@@ -16,7 +16,9 @@ export const exportMyData = createServerFn({ method: "POST" })
       supabaseAdmin.from("point_penalties").select("reason,points,created_at").eq("user_id", uid),
       supabaseAdmin.from("room_purchases").select("amount_cents,status,created_at,consumed_at,environment").eq("user_id", uid),
       supabaseAdmin.from("room_creation_usage").select("day,kind,created_at,environment").eq("user_id", uid),
+      supabaseAdmin.from("room_chat_messages").select("body,gif,created_at").eq("user_id", uid).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
     ]);
+    if (chatError) throw new Error("No se pudieron exportar tus mensajes");
     return {
       exportado: new Date().toISOString(),
       cuenta: { email: u?.user?.email ?? null, creada: u?.user?.created_at ?? null, proveedor: u?.user?.app_metadata?.provider ?? null },
@@ -27,6 +29,7 @@ export const exportMyData = createServerFn({ method: "POST" })
       penalizaciones: penalties ?? [],
       compras: purchases ?? [],
       creaciones: usage ?? [],
+      mensajes: messages ?? [],
     };
   });
 

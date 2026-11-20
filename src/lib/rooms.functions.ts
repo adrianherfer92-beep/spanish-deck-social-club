@@ -5,8 +5,9 @@ import { ENGINES } from "@/lib/games";
 import { MoveError } from "@/lib/games/types";
 import { autoMove, advanceDeparted, resultRows } from "@/lib/room-points";
 import { resolvedAvatarSeed } from "@/lib/avatars";
-import { gifWaitSeconds, safeGif, GIF_VISIBLE_MS, type Gif } from "@/lib/gifs";
+import { gifWaitSeconds, safeGif, type Gif } from "@/lib/gifs";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { chatTextSchema, chatAvailable, CHAT_RETENTION_DAYS, type ChatMessage } from "@/lib/room-chat";
 import { environmentSchema, PAYMENTS_ENABLED } from "@/lib/room-billing";
 
 async function admin() {
@@ -27,10 +28,10 @@ async function optionalUserId(): Promise<string | null> {
 }
 
 /** Aviso sin datos a todos los navegadores de la mesa: "ha cambiado algo, pedid vuestra vista". */
-async function notify(code: string) {
+async function notify(code: string, event = "cambio") {
   try {
     const sb = await admin();
-    await sb.channel(`sala:${code}`).httpSend("cambio", {});
+    await sb.channel(`sala:${code}`).httpSend(event, {});
   } catch (e) {
     console.error("notify", e);
   }
@@ -115,9 +116,6 @@ export const getRoom = createServerFn({ method: "POST" })
     const { sb, room, players, me } = await loadRoom(data.code, data.token);
     const engine = ENGINES[room.game];
     const myIndex = me ? players.findIndex((p) => p.id === me.id) : -1;
-    const now = Date.now();
-    const expired = players.filter(p => p.gif_reaction && p.gif_sent_at && now - Date.parse(p.gif_sent_at) >= GIF_VISIBLE_MS);
-    if (expired.length) await sb.from("room_players").update({ gif_reaction: null }).in("id", expired.map(p => p.id)).lt("gif_sent_at", new Date(now - GIF_VISIBLE_MS).toISOString());
     const profileIds = players.flatMap((p) => p.user_id ? [p.user_id] : []);
     const avatars = new Map<string, string | null>();
     if (profileIds.length) {
@@ -149,7 +147,6 @@ export const getRoom = createServerFn({ method: "POST" })
       turnStartedAt: room.updated_at as string,
       serverNow: new Date().toISOString(),
       gifSentAt: me?.gif_sent_at ?? null,
-      reactions: me && room.status === "playing" ? players.flatMap(p => p.gif_reaction && p.gif_sent_at && now - Date.parse(p.gif_sent_at) < GIF_VISIBLE_MS ? [{ playerId: p.id, name: p.name, sentAt: p.gif_sent_at, gif: p.gif_reaction as unknown as Gif }] : []) : [],
     };
   });
 
@@ -348,7 +345,7 @@ export const searchRoomGifs = createServerFn({ method: "POST" })
   .inputValidator(gifRoomSchema.extend({ query: z.string().trim().max(60) }))
   .handler(async ({ data }) => {
     const { sb, room, me } = await loadRoom(data.code, data.token);
-    if (!me || room.status !== "playing") throw new Error("Solo los jugadores de la partida pueden buscar GIFs");
+    if (!me || !chatAvailable(room.status)) throw new Error("Solo los jugadores de la mesa pueden buscar GIFs");
     const { data: allowed, error } = await sb.rpc("claim_giphy_search", { _player: me.id });
     if (error) throw new Error("No se pudo comprobar el límite");
     if (!allowed) throw new Error("Espera 3 segundos antes de otra búsqueda");
@@ -360,15 +357,39 @@ export const sendRoomGif = createServerFn({ method: "POST" })
   .inputValidator(gifRoomSchema.extend({ gifId: z.string().regex(/^[a-zA-Z0-9]{1,100}$/) }))
   .handler(async ({ data }) => {
     const { sb, room, me } = await loadRoom(data.code, data.token);
-    if (!me || room.status !== "playing") throw new Error("Solo los jugadores de la partida pueden enviar GIFs");
+    if (!me || !chatAvailable(room.status)) throw new Error("Solo los jugadores de la mesa pueden enviar GIFs");
     const wait = gifWaitSeconds(me.gif_sent_at);
     if (wait) throw new Error(`Espera ${wait} segundos para enviar otro GIF`);
     const raw = await fetchGiphy(`/${data.gifId}`);
     const gif = safeGif(raw.data);
     if (!gif) throw new Error("Este GIF no está disponible o no es apto para todos");
     const { data: sent, error } = await sb.rpc("send_room_gif", { _player: me.id, _reaction: gif });
-    if (error) throw new Error("No se pudo enviar el GIF");
+    if (error) throw new Error(error.message);
     if (!sent) throw new Error("Solo puedes enviar un GIF cada 30 segundos");
-    await notify(room.code);
+    await notify(room.code, "chat");
+    return { ok: true };
+  });
+
+export const getRoomChat = createServerFn({ method: "POST" })
+  .inputValidator(gifRoomSchema)
+  .handler(async ({ data }) => {
+    const { sb, room, me } = await loadRoom(data.code, data.token);
+    if (!me || !chatAvailable(room.status)) throw new Error("No tienes acceso al chat de esta mesa");
+    const since = new Date(Date.now() - CHAT_RETENTION_DAYS * 86400000).toISOString();
+    const { data: rows, error } = await sb.from("room_chat_messages")
+      .select("id,player_id,name,body,gif,created_at").eq("room_id", room.id).gte("created_at", since).order("id", { ascending: false }).limit(100);
+    if (error) throw new Error("No se pudo cargar el chat");
+    const messages: ChatMessage[] = (rows ?? []).reverse().map(m => ({ id: m.id, playerId: m.player_id, name: m.name, text: m.body, gif: m.gif as Gif | null, sentAt: m.created_at }));
+    return { messages, myPlayerId: me.id, gifSentAt: me.gif_sent_at, chatSentAt: me.chat_sent_at, serverNow: new Date().toISOString() };
+  });
+
+export const sendRoomMessage = createServerFn({ method: "POST" })
+  .inputValidator(gifRoomSchema.extend({ text: chatTextSchema }))
+  .handler(async ({ data }) => {
+    const { sb, room, me } = await loadRoom(data.code, data.token);
+    if (!me || !chatAvailable(room.status)) throw new Error("No tienes acceso al chat de esta mesa");
+    const { error } = await sb.rpc("send_room_chat", { _player: me.id, _token: data.token, _body: data.text });
+    if (error) throw new Error(error.message);
+    await notify(room.code, "chat");
     return { ok: true };
   });

@@ -1,4 +1,8 @@
 # DiceBear avatars
+## Chat de mesa
+- [x] Añadir mensajes privados para miembros de la mesa con límites y limpieza automática.
+- [x] Integrar los GIFs en la conversación y retirar las reacciones de la partida.
+- [x] Incluir mensajes en privacidad, exportación y eliminación de cuenta; verificar con dos jugadores.
 ## Claridad UX/UI
 - [x] Ajustar portada, acceso de invitados, selección, dificultad y campos de entrada.
 - [x] Aclarar compartir, reglas en espera, salida y cartas jugables durante los turnos.

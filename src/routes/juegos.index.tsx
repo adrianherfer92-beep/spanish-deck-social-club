@@ -22,7 +22,7 @@ function Juegos() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-12">
       <h1 className="text-5xl">Los juegos de la casa</h1>
-      <p className="mt-2 text-muted-foreground">Todos se juegan solo con las cartas, sin hablar.</p>
+      <p className="mt-2 text-muted-foreground">Baraja española, amigos y un chat en cada mesa.</p>
       <div className="mt-8 grid gap-6 sm:grid-cols-2">
         {GAMES.map((g) => (
           <Link key={g.id} to="/juegos/$juego" params={{ juego: g.id }} className="flex gap-5 border border-border rounded-lg bg-card p-5 transition-transform hover:-translate-y-1">

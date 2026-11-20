@@ -1,5 +1,4 @@
 export const GIF_COOLDOWN_MS = 30_000;
-export const GIF_VISIBLE_MS = 15_000;
 export type Gif = { id: string; title: string; url: string };
 
 export function gifWaitSeconds(sentAt: string | null, now = Date.now()) {

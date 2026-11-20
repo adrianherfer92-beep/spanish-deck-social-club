@@ -245,6 +245,61 @@ export type Database = {
         }
         Relationships: []
       }
+      room_chat_messages: {
+        Row: {
+          body: string | null
+          created_at: string
+          gif: Json | null
+          id: number
+          name: string
+          player_id: string | null
+          room_id: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          gif?: Json | null
+          id?: never
+          name: string
+          player_id?: string | null
+          room_id: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          gif?: Json | null
+          id?: never
+          name?: string
+          player_id?: string | null
+          room_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_chat_messages_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "room_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_chat_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_creation_usage: {
         Row: {
           created_at: string
@@ -295,6 +350,7 @@ export type Database = {
       }
       room_players: {
         Row: {
+          chat_sent_at: string | null
           gif_reaction: Json | null
           gif_search_at: string | null
           gif_sent_at: string | null
@@ -308,6 +364,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          chat_sent_at?: string | null
           gif_reaction?: Json | null
           gif_search_at?: string | null
           gif_sent_at?: string | null
@@ -321,6 +378,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          chat_sent_at?: string | null
           gif_reaction?: Json | null
           gif_search_at?: string | null
           gif_sent_at?: string | null
@@ -456,6 +514,7 @@ export type Database = {
       claim_giphy_search: { Args: { _player: string }; Returns: boolean }
       cleanup_abandoned_rooms: { Args: never; Returns: undefined }
       cleanup_moderation: { Args: never; Returns: undefined }
+      cleanup_room_chat: { Args: never; Returns: undefined }
       confirm_room_purchase: {
         Args: {
           _environment: string
@@ -515,6 +574,10 @@ export type Database = {
           _report: string
         }
         Returns: undefined
+      }
+      send_room_chat: {
+        Args: { _body: string; _gif?: Json; _player: string; _token: string }
+        Returns: number
       }
       send_room_gif: {
         Args: { _player: string; _reaction: Json }

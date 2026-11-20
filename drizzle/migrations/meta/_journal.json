@@ -120,6 +120,20 @@
       "when": 1794659741662,
       "tag": "0016_pause_payments_unlimited_free_rooms",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795199506946,
+      "tag": "0017_private_room_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795199647477,
+      "tag": "0018_lock_room_chat_access",
+      "breakpoints": true
     }
   ]
 }
