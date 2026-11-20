@@ -345,7 +345,7 @@ export const searchRoomGifs = createServerFn({ method: "POST" })
   .inputValidator(gifRoomSchema.extend({ query: z.string().trim().max(60) }))
   .handler(async ({ data }) => {
     const { sb, room, me } = await loadRoom(data.code, data.token);
-    if (!me || !chatAvailable(room.status)) throw new Error("Solo los jugadores de la mesa pueden buscar GIFs");
+    if (!me || !chatAvailable(room.status, !!me)) throw new Error("Solo los jugadores de la mesa pueden buscar GIFs");
     const { data: allowed, error } = await sb.rpc("claim_giphy_search", { _player: me.id });
     if (error) throw new Error("No se pudo comprobar el límite");
     if (!allowed) throw new Error("Espera 3 segundos antes de otra búsqueda");
@@ -357,7 +357,7 @@ export const sendRoomGif = createServerFn({ method: "POST" })
   .inputValidator(gifRoomSchema.extend({ gifId: z.string().regex(/^[a-zA-Z0-9]{1,100}$/) }))
   .handler(async ({ data }) => {
     const { sb, room, me } = await loadRoom(data.code, data.token);
-    if (!me || !chatAvailable(room.status)) throw new Error("Solo los jugadores de la mesa pueden enviar GIFs");
+    if (!me || !chatAvailable(room.status, !!me)) throw new Error("Solo los jugadores de la mesa pueden enviar GIFs");
     const wait = gifWaitSeconds(me.gif_sent_at);
     if (wait) throw new Error(`Espera ${wait} segundos para enviar otro GIF`);
     const raw = await fetchGiphy(`/${data.gifId}`);
@@ -374,7 +374,7 @@ export const getRoomChat = createServerFn({ method: "POST" })
   .inputValidator(gifRoomSchema)
   .handler(async ({ data }) => {
     const { sb, room, me } = await loadRoom(data.code, data.token);
-    if (!me || !chatAvailable(room.status)) throw new Error("No tienes acceso al chat de esta mesa");
+    if (!me || !chatAvailable(room.status, !!me)) throw new Error("No tienes acceso al chat de esta mesa");
     const since = new Date(Date.now() - CHAT_RETENTION_DAYS * 86400000).toISOString();
     const { data: rows, error } = await sb.from("room_chat_messages")
       .select("id,player_id,name,body,gif,created_at").eq("room_id", room.id).gte("created_at", since).order("id", { ascending: false }).limit(100);
@@ -387,7 +387,7 @@ export const sendRoomMessage = createServerFn({ method: "POST" })
   .inputValidator(gifRoomSchema.extend({ text: chatTextSchema }))
   .handler(async ({ data }) => {
     const { sb, room, me } = await loadRoom(data.code, data.token);
-    if (!me || !chatAvailable(room.status)) throw new Error("No tienes acceso al chat de esta mesa");
+    if (!me || !chatAvailable(room.status, !!me)) throw new Error("No tienes acceso al chat de esta mesa");
     const { error } = await sb.rpc("send_room_chat", { _player: me.id, _token: data.token, _body: data.text });
     if (error) throw new Error(error.message);
     await notify(room.code, "chat");

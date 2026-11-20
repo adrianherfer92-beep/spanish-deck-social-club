@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { CHAT_RETENTION_DAYS } from "@/lib/room-chat";
 
 // Derecho de acceso/portabilidad (RGPD art. 15 y 20): todo lo que guardamos de ti.
 export const exportMyData = createServerFn({ method: "POST" })
@@ -16,7 +17,7 @@ export const exportMyData = createServerFn({ method: "POST" })
       supabaseAdmin.from("point_penalties").select("reason,points,created_at").eq("user_id", uid),
       supabaseAdmin.from("room_purchases").select("amount_cents,status,created_at,consumed_at,environment").eq("user_id", uid),
       supabaseAdmin.from("room_creation_usage").select("day,kind,created_at,environment").eq("user_id", uid),
-      supabaseAdmin.from("room_chat_messages").select("body,gif,created_at").eq("user_id", uid).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
+      supabaseAdmin.from("room_chat_messages").select("body,gif,created_at").eq("user_id", uid).gte("created_at", new Date(Date.now() - CHAT_RETENTION_DAYS * 86400000).toISOString()),
     ]);
     if (chatError) throw new Error("No se pudieron exportar tus mensajes");
     return {
