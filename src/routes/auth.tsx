@@ -165,9 +165,6 @@ function AuthPage() {
             </button>
           </>
         )}
-        <p className="mt-6 text-xs text-muted-foreground">
-          ¿Solo quieres echar una partida? <Link to="/" className="underline">Juega como invitado</Link>.
-        </p>
       </div>
     </main>
   );
